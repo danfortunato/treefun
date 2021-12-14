@@ -1,0 +1,7 @@
+CXX      = g++-11
+MEX      = mex
+MWRAP    = mwrap
+LIBS     = -lgomp
+CXXFLAGS = -std=c++17 -fopenmp -O3 -march=native -fPIC -fno-math-errno
+LDFLAGS  = -bundle
+MEXFLAGS = -largeArrayDims -DR2008OO CXX=$(CXX) CXXFLAGS='$(CXXFLAGS)' CXXOPTIMFLAGS='' LDFLAGS='$(LDFLAGS)'

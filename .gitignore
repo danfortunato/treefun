@@ -1,0 +1,14 @@
+# Mac OS files
+.DS_Store?
+
+# Matlab autosaves
+*.~
+*.asv
+
+# Matlab MEX
+*.mexmaci64
+*.mexa64
+*.mexw64
+*.out
+*.o
+*.dSYM/
