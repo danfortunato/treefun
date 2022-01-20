@@ -30,12 +30,10 @@ shading interp
 view(2)
 
 % Plot the boxes
-for k = 1:length(boxes)
-    vertices = boxes(k).domain([1 3; 2 3; 2 4; 1 4]);
-    line('XData', vertices([1:end 1], 1), ...
-         'YData', vertices([1:end 1], 2), ...
-         'LineWidth', 1)
-end
+domains = cat(1, boxes.domain);
+xdata = [domains(:, [1 2 2 1 1]).' ; nan(1, length(boxes))];
+ydata = [domains(:, [3 3 4 4 3]).' ; nan(1, length(boxes))];
+line('XData', xdata(:), 'YData', ydata(:), 'LineWidth', 1)
 
 axis equal
 xlim(f.domain(1:2))
