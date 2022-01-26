@@ -1,7 +1,7 @@
-function varargout = subsref(sol, index)
+function varargout = subsref(f, index)
 %SUBSREF   Subscripted reference for a TREEFUN2.
-%   SOL(X, Y) returns the values of SOL evaluated at (X, Y). See FEVAL for
-%   further details.
+%   F(X, Y) returns the values of the TREEFUN2 F evaluated at (X, Y). See
+%   FEVAL for further details.
 %
 %   See also FEVAL.
 
@@ -11,11 +11,11 @@ switch index(1).type
         % Where to evaluate:
         x = idx{1};
         y = idx{2};
-        out = feval(sol, x, y);
+        out = feval(f, x, y);
         
     case '.'
         % Call GET() for .PROP access.
-        out = sol.(idx);
+        out = f.(idx);
         if ( numel(index) > 1 )
             % Recurse on SUBSREF():
             index(1) = [];

@@ -1,6 +1,6 @@
-function out = isLeaf(box)
+function out = isLeaf(f, id)
 %ISLEAF   Is this box a leaf?
 
-out = ( [box.height] == 0 );
+out = ( f.height(id) == 0 );
 
 end

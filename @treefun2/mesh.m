@@ -23,8 +23,8 @@ for k = 1:length(f)
 end
 view(2)
 axis equal
-xlim(f.domain(1:2))
-ylim(f.domain(3:4))
+xlim(f.domain(1:2, 1))
+ylim(f.domain(3:4, 1))
 
 if ( ~holdState )
     hold off

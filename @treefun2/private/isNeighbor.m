@@ -1,16 +1,16 @@
-function out = isNeighbor(a, b, location)
+function out = isNeighbor(f, a, b, location)
 %ISNEIGHBOR   Is node B a neighbor of node A?
 
 switch lower(location)
     case {'left', 'right', 'down', 'up'}
-        out = isNeighborSide(a, b, location);
+        out = isNeighborSide(f, a, b, location);
     case {'leftdown', 'rightdown', 'leftup', 'rightup'}
-        out = isNeighborCorner(a, b, location);
+        out = isNeighborCorner(f, a, b, location);
 end
 
 end
 
-function out = isNeighborSide(a, b, side)
+function out = isNeighborSide(f, a, b, side)
 
 kLeft = 0;
 kRight = 1;
@@ -32,11 +32,11 @@ switch lower(side)
 end
 
 if ( dir == kLeft )
-    planeA = a.domain(dim);
-    planeB = b.domain(dim+1);
+    planeA = f.domain(dim,   a);
+    planeB = f.domain(dim+1, b);
 else
-    planeA = a.domain(dim+1);
-    planeB = b.domain(dim);
+    planeA = f.domain(dim+1, a);
+    planeB = f.domain(dim,   b);
 end
 
 if (planeA ~= planeB)
@@ -50,7 +50,7 @@ else
     i = 1;
 end
 
-if ( ~(b.domain(i+1) > a.domain(i) && b.domain(i) < a.domain(i+1)) )
+if ( ~(f.domain(i+1, b) > f.domain(i, a) && f.domain(i, b) < f.domain(i+1, a)) )
     out = false;
 else
     out = true;
@@ -58,17 +58,17 @@ end
 
 end
 
-function out = isNeighborCorner(a, b, corner)
+function out = isNeighborCorner(f, a, b, corner)
 
 switch lower(corner)
     case 'leftdown'
-        out = all(a.domain([1 3]) == b.domain([2 4]));
+        out = all(f.domain([1 3], a) == f.domain([2 4], b));
     case 'rightdown'
-        out = all(a.domain([2 3]) == b.domain([1 4]));
+        out = all(f.domain([2 3], a) == f.domain([1 4], b));
     case 'leftup'
-        out = all(a.domain([1 4]) == b.domain([2 3]));
+        out = all(f.domain([1 4], a) == f.domain([2 3], b));
     case 'rightup'
-        out = all(a.domain([2 4]) == b.domain([1 3]));
+        out = all(f.domain([2 4], a) == f.domain([1 3], b));
 end
 
 end

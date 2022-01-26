@@ -6,10 +6,9 @@ function f = uminus(f)
 %
 %   See also UPLUS.
 
-boxes = leaves(f);
-for k = 1:length(boxes)
-    id = boxes(k).id;
-    f.boxes(id).coeffs = -f.boxes(id).coeffs;
+ids = leaves(f);
+for id = ids(:).'
+    f.coeffs{id} = -f.coeffs{id};
 end
 
 end

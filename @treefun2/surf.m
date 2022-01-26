@@ -16,12 +16,12 @@ nplotpts = 100;
 
 % Plot the function
 hold on
-boxes = leaves(f);
-for k = 1:length(boxes)
-    box = boxes(k);
-    [x, y] = meshgrid(linspace(box.domain(1), box.domain(2), nplotpts), ...
-                      linspace(box.domain(3), box.domain(4), nplotpts));
-    u = coeffs2plotvals(box.coeffs);
+ids = leaves(f);
+for k = 1:length(ids)
+    id = ids(k);
+    [x, y] = meshgrid(linspace(f.domain(1,id), f.domain(2,id), nplotpts), ...
+                      linspace(f.domain(3,id), f.domain(4,id), nplotpts));
+    u = coeffs2plotvals(f.coeffs{id});
     hk = surf(x, y, u, varargin{:});
     if ( nargout > 0 )
         h(k) = hk; %#ok<AGROW>
@@ -31,12 +31,9 @@ shading interp
 view(3)
 
 % Plot the boxes
-for k = 1:length(boxes)
-    vertices = boxes(k).domain([1 3; 2 3; 2 4; 1 4]);
-    line('XData', vertices([1:end 1], 1), ...
-         'YData', vertices([1:end 1], 2), ...
-         'LineWidth', 1)
-end
+xdata = [f.domain([1 2 2 1 1], ids) ; nan(1, length(ids))];
+ydata = [f.domain([3 3 4 4 3], ids) ; nan(1, length(ids))];
+line('XData', xdata(:), 'YData', ydata(:), 'LineWidth', 1)
 
 xlim(f.domain(1:2))
 ylim(f.domain(3:4))

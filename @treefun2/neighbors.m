@@ -6,7 +6,7 @@ if ( nargin < 3 )
 end
 
 if ( strcmpi(type, 'leaf') )
-
+    
     neighbors = cell(8, 1);
 
     v = [];
@@ -31,7 +31,7 @@ if ( strcmpi(type, 'leaf') )
         search(f, @(node) cond(node, 'leftdown'),  @accum, start);
         neighbors{5} = v;
     end
-    
+
     start = rightDownNeighbor(f, id);
     if ( ~isnan(start) )
         v = [];
@@ -68,26 +68,26 @@ else
 end
 
     function out = cond(node, side)
-        out = isNeighbor(f.boxes(id), node, side) || ...
-              isParent(f.boxes(id), node);
+        out = isNeighbor(f, id, node, side) || ...
+              isParent(f, id, node);
     end
 
     function accum(node)
-        v(end+1) = node.id;
+        v(end+1) = node;
     end
 
 end
 
 function search(f, cond, accum, id)
 
-    if ( cond(f.boxes(id)) )
-        if ( ~isLeaf(f.boxes(id)) )
-            search(f, cond, accum, f.boxes(id).children(1));
-            search(f, cond, accum, f.boxes(id).children(2));
-            search(f, cond, accum, f.boxes(id).children(3));
-            search(f, cond, accum, f.boxes(id).children(4));
+    if ( cond(id) )
+        if ( ~isLeaf(f, id) )
+            search(f, cond, accum, f.children(1, id));
+            search(f, cond, accum, f.children(2, id));
+            search(f, cond, accum, f.children(3, id));
+            search(f, cond, accum, f.children(4, id));
         else
-            accum(f.boxes(id));
+            accum(id);
         end
     end
 
@@ -95,30 +95,30 @@ end
 
 function out = leftNeighbor(f, id)
 
-    if ( f.boxes(id).level == 0 )
+    if ( f.level(id) == 0 )
         out = NaN;
         return
     end
 
-    pid = f.boxes(id).parent;
-    if ( id == f.boxes(pid).children(2) ) % SE
-        out = f.boxes(pid).children(1);   % SW
+    pid = f.parent(id);
+    if ( id == f.children(2, pid) ) % SE
+        out = f.children(1, pid);   % SW
         return
     end
-    if ( id == f.boxes(pid).children(4) ) % NE
-        out = f.boxes(pid).children(3);   % NW
+    if ( id == f.children(4, pid) ) % NE
+        out = f.children(3, pid);   % NW
         return
     end
 
     mu = leftNeighbor(f, pid);
 
-    if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+    if ( isnan(mu) || isLeaf(f, mu) )
         out = mu;
     else
-        if ( id == f.boxes(pid).children(1) ) % SW
-            out = f.boxes(mu).children(2);    % SE
+        if ( id == f.children(1, pid) ) % SW
+            out = f.children(2, mu);    % SE
         else
-            out = f.boxes(mu).children(4);    % NE
+            out = f.children(4, mu);    % NE
         end
     end
 
@@ -126,68 +126,61 @@ end
 
 function out = rightNeighbor(f, id)
 
-    if ( f.boxes(id).level == 0 )
+    if ( f.level(id) == 0 )
         out = NaN;
         return
     end
 
-    pid = f.boxes(id).parent;
-    if ( id == f.boxes(pid).children(1) ) % SW
-        out = f.boxes(pid).children(2);   % SE
+    pid = f.parent(id);
+    if ( id == f.children(1, pid) ) % SW
+        out = f.children(2, pid);   % SE
         return
     end
-    if ( id == f.boxes(pid).children(3) ) % NW
-        out = f.boxes(pid).children(4);   % NE
+    if ( id == f.children(3, pid) ) % NW
+        out = f.children(4, pid);   % NE
         return
     end
 
     mu = rightNeighbor(f, pid);
 
-    %if ( isnan(mu) || isLeaf(f.boxes(mu)) )
-    ia = isnan(mu);
-    if ( ia )
+    if ( isnan(mu) || isLeaf(f, mu) )
         out = mu;
     else
-        mid = f.boxes(mu);
-        ib = isLeaf(mid);
-        if ( ib )
-            out = mu;
+        if ( id == f.children(2, pid) ) % SE
+            out = f.children(1, mu);    % SW
         else
-            if ( id == f.boxes(pid).children(2) ) % SE
-                out = f.boxes(mu).children(1);    % SW
-            else
-                out = f.boxes(mu).children(3);    % NW
-            end
+            out = f.children(3, mu);    % NW
         end
     end
+
 end
 
 function out = downNeighbor(f, id)
 
-    if ( f.boxes(id).level == 0 )
+    if ( f.level(id) == 0 )
         out = NaN;
         return
     end
 
-    pid = f.boxes(id).parent;
-    if ( id == f.boxes(pid).children(3) ) % NW
-        out = f.boxes(pid).children(1);   % SW
+    pid = f.parent(id);
+    if ( id == f.children(3, pid) ) % NW
+        out = f.children(1, pid);   % SW
         return
     end
-    if ( id == f.boxes(pid).children(4) ) % NE
-        out = f.boxes(pid).children(2);   % SE
+    if ( id == f.children(4, pid) ) % NE
+        out = f.children(2, pid);   % SE
         return
     end
 
     mu = downNeighbor(f, pid);
 
-    if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+    if ( isnan(mu) || isLeaf(f, mu) )
         out = mu;
     else
-        if ( id == f.boxes(pid).children(1) ) % SW
-            out = f.boxes(mu).children(3);    % NW
+        if ( id == f.children(1, pid) ) % SW
+            out = f.children(3, mu);    % NW
         else
-            out = f.boxes(mu).children(4);    % NE
+            out = f.children(4, mu);    % NE
         end
     end
 
@@ -195,175 +188,176 @@ end
 
 function out = upNeighbor(f, id)
 
-    if ( f.boxes(id).level == 0 )
+    if ( f.level(id) == 0 )
         out = NaN;
         return
     end
 
-    pid = f.boxes(id).parent;
-    if ( id == f.boxes(pid).children(1) ) % SW
-        out = f.boxes(pid).children(3);   % NW
+    pid = f.parent(id);
+    if ( id == f.children(1, pid) ) % SW
+        out = f.children(3, pid);   % NW
         return
     end
-    if ( id == f.boxes(pid).children(2) ) % SE
-        out = f.boxes(pid).children(4);   % NE
+    if ( id == f.children(2, pid) ) % SE
+        out = f.children(4, pid);   % NE
         return
     end
 
     mu = upNeighbor(f, pid);
 
-    if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+    if ( isnan(mu) || isLeaf(f, mu) )
         out = mu;
     else
-        if ( id == f.boxes(pid).children(3) ) % NW
-            out = f.boxes(mu).children(1);    % SW
+        if ( id == f.children(3, pid) ) % NW
+            out = f.children(1, mu);    % SW
         else
-            out = f.boxes(mu).children(2);    % SE
+            out = f.children(2, mu);    % SE
         end
     end
 
 end
 
+
 function out = leftDownNeighbor(f, id)
 
-    if ( f.boxes(id).level == 0 )
+    if ( f.level(id) == 0 )
         out = NaN;
         return
     end
 
-    pid = f.boxes(id).parent;
+    pid = f.parent(id);
     switch id
-        case f.boxes(pid).children(1) % SW
+        case f.children(1, pid) % SW
             mu = leftDownNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = mu;
             else
-                out = f.boxes(mu).children(4); % NE
+                out = f.children(4, mu); % NE
             end
-        case f.boxes(pid).children(2) % SE
+        case f.children(2, pid) % SE
             mu = downNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = NaN; % No corner neighbor
             else
-                out = f.boxes(mu).children(3); % NW
+                out = f.children(3, mu); % NW
             end
-        case f.boxes(pid).children(3) % NW
+        case f.children(3, pid) % NW
             mu = leftNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = NaN; % No corner neighbor
             else
-                out = f.boxes(mu).children(2); % SE
+                out = f.children(2, mu); % SE
             end
-        case f.boxes(pid).children(4) % NE
-            out = f.boxes(pid).children(1); % SW
+        case f.children(4, pid) % NE
+            out = f.children(1, pid); % SW
     end
 
 end
 
 function out = rightDownNeighbor(f, id)
 
-    if ( f.boxes(id).level == 0 )
+    if ( f.level(id) == 0 )
         out = NaN;
         return
     end
 
-    pid = f.boxes(id).parent;
+    pid = f.parent(id);
     switch id
-        case f.boxes(pid).children(2) % SE
+        case f.children(2, pid) % SE
             mu = rightDownNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = mu;
             else
-                out = f.boxes(mu).children(3); % NW
+                out = f.children(3, mu); % NW
             end
-        case f.boxes(pid).children(1) % SW
+        case f.children(1, pid) % SW
             mu = downNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = NaN; % No corner neighbor
             else
-                out = f.boxes(mu).children(4); % NE
+                out = f.children(4, mu); % NE
             end
-        case f.boxes(pid).children(4) % NE
+        case f.children(4, pid) % NE
             mu = rightNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = NaN; % No corner neighbor
             else
-                out = f.boxes(mu).children(1); % SW
+                out = f.children(1, mu); % SW
             end
-        case f.boxes(pid).children(3) % NW
-            out = f.boxes(pid).children(2); % SE
+        case f.children(3, pid) % NW
+            out = f.children(2, pid); % SE
     end
 
 end
 
 function out = leftUpNeighbor(f, id)
 
-    if ( f.boxes(id).level == 0 )
+    if ( f.level(id) == 0 )
         out = NaN;
         return
     end
 
-    pid = f.boxes(id).parent;
+    pid = f.parent(id);
     switch id
-        case f.boxes(pid).children(3) % NW
+        case f.children(3, pid) % NW
             mu = leftUpNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = mu;
             else
-                out = f.boxes(mu).children(2); % SE
+                out = f.children(2, mu); % SE
             end
-        case f.boxes(pid).children(1) % SW
+        case f.children(1, pid) % SW
             mu = leftNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = NaN; % No corner neighbor
             else
-                out = f.boxes(mu).children(4); % NE
+                out = f.children(4, mu); % NE
             end
-        case f.boxes(pid).children(4) % NE
+        case f.children(4, pid) % NE
             mu = upNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = NaN; % No corner neighbor
             else
-                out = f.boxes(mu).children(1); % SW
+                out = f.children(1, mu); % SW
             end
-        case f.boxes(pid).children(2) % SE
-            out = f.boxes(pid).children(3); % NW
+        case f.children(2, pid) % SE
+            out = f.children(3, pid); % NW
     end
 
 end
 
 function out = rightUpNeighbor(f, id)
 
-    if ( f.boxes(id).level == 0 )
+    if ( f.level(id) == 0 )
         out = NaN;
         return
     end
 
-    pid = f.boxes(id).parent;
+    pid = f.parent(id);
     switch id
-        case f.boxes(pid).children(4) % NE
+        case f.children(4, pid) % NE
             mu = rightUpNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = mu;
             else
-                out = f.boxes(mu).children(1); % SW
+                out = f.children(1, mu); % SW
             end
-        case f.boxes(pid).children(2) % SE
+        case f.children(2, pid) % SE
             mu = rightNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = NaN; % No corner neighbor
             else
-                out = f.boxes(mu).children(3); % NW
+                out = f.children(3, mu); % NW
             end
-        case f.boxes(pid).children(3) % NW
+        case f.children(3, pid) % NW
             mu = upNeighbor(f, pid);
-            if ( isnan(mu) || isLeaf(f.boxes(mu)) )
+            if ( isnan(mu) || isLeaf(f, mu) )
                 out = NaN; % No corner neighbor
             else
-                out = f.boxes(mu).children(2); % SE
+                out = f.children(2, mu); % SE
             end
-        case f.boxes(pid).children(1) % SW
-            out = f.boxes(pid).children(4); % NE
+        case f.children(1, pid) % SW
+            out = f.children(4, pid); % NE
     end
 
 end

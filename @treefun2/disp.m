@@ -15,7 +15,7 @@ if ( isempty(f) )
 end
 
 % Get information that we want to display:
-dom = f.domain;      % Domain
+dom = f.domain(:,1); % Domain
 nleaves = length(f); % Number of leaves
 nlevels = height(f); % Number of levels
 

@@ -3,6 +3,6 @@ function out = isempty(f)
 %   ISEMPTY(F) returns logical true if F is an empty TREEFUN2 and false
 %   otherwise.
 
-out = isempty(f.boxes);
+out = isempty(f.id);
 
 end

@@ -8,16 +8,16 @@ nplotpts = 100;
 
 % Loop over the patches:
 hold on
-boxes = leaves(f);
-for k = 1:length(boxes)
-    box = boxes(k);
-    %[x, y] = chebpts2(f.n, f.n, box.domain);
-    [x, y] = meshgrid(linspace(box.domain(1), box.domain(2), nplotpts), ...
-                      linspace(box.domain(3), box.domain(4), nplotpts));
-    vals = abs(box.coeffs);
-    coeffs = vals2coeffs(vals);
+ids = leaves(f);
+for k = 1:length(ids)
+    id = ids(k);
+    %[x, y] = chebpts2(f.n, f.n, f.domain(:,id));
+    [x, y] = meshgrid(linspace(f.domain(1,id), f.domain(2,id), nplotpts), ...
+                      linspace(f.domain(3,id), f.domain(4,id), nplotpts));
+    vals = abs(f.coeffs{id});
+    coeffs = treefun2.vals2coeffs(vals);
     u = coeffs2plotvals(coeffs);
-    %stem3(x, y, abs(box.coeffs), 'ok', 'MarkerFaceColor', 'k');
+    %stem3(x, y, abs(f.coeffs{id}), 'ok', 'MarkerFaceColor', 'k');
     stem3(x, y, u, 'o', 'MarkerFaceColor', 'k')
     %surf(x, y, log10(abs(u)))
 end

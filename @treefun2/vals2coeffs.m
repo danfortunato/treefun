@@ -6,7 +6,7 @@ function coeffs = vals2coeffs(vals)
 
 % Store the vals2coeffs matrices for sizes < cutoff
 persistent F
-cutoff = 33;
+cutoff = 50;
 
 % Get the length of the input:
 p = size(vals, 1);

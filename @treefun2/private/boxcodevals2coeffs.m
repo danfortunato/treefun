@@ -31,6 +31,6 @@ if ( isempty(Eval) )
 end
 
 chebvals = Eval * vals * Eval.';
-coeffs = vals2coeffs(chebvals);
+coeffs = treefun2.vals2coeffs(chebvals);
 
 end

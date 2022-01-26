@@ -46,19 +46,21 @@ switch ( p )
         reduceFun = @(x) sqrt( sum(x.^2) );
 
     case {inf, 'inf', 'max'}
-        L = leaves(f);
-        normF = zeros(length(L), 1);
-        for k = 1:length(L)
-            V = coeffs2vals(L(k).coeffs);
+        ids = leaves(f);
+        normF = zeros(length(ids), 1);
+        for k = 1:length(ids)
+            id = ids(k);
+            V = treefun2.coeffs2vals(f.coeffs{id});
             normF(k) = max(abs(V(:)));
         end
         reduceFun = @max;
 
     case {-inf, '-inf', 'min'}
-        L = leaves(f);
-        normF = zeros(length(L), 1);
-        for k = 1:length(L)
-            V = coeffs2vals(L(k).coeffs);
+        ids = leaves(f);
+        normF = zeros(length(ids), 1);
+        for k = 1:length(ids)
+            id = ids(k);
+            V = treefun2.coeffs2vals(f.coeffs{id});
             normF(k) = min(abs(V(:)));
         end
         reduceFun = @min;
@@ -122,15 +124,16 @@ nx = f.n;
 ny = f.n;
 qx = nx*p;
 qy = ny*p;
-wx = util.quadwts(qx); wx = wx(:);
-wy = util.quadwts(qy); wy = wy(:);
+wx = chebtech2.quadwts(qx); wx = wx(:);
+wy = chebtech2.quadwts(qy); wy = wy(:);
 
-L = leaves(f);
-int = zeros(length(L),1);
-for k = 1:length(L)
+ids = leaves(f);
+int = zeros(length(ids), 1);
+for k = 1:length(ids)
+    id = ids(k);
     U = zeros(qy, qx);
-    U(1:ny,1:nx) = L(k).coeffs;
-    V = coeffs2vals(U);
+    U(1:ny,1:nx) = f.coeffs{id};
+    V = treefun2.coeffs2vals(U);
     int(k) = sum(sum(abs(V).^p .* wy .* wx.')).^(1/p);
 end
 

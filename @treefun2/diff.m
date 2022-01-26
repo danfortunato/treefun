@@ -1,5 +1,5 @@
 function f = diff(f, n, dim)
-%DIFF   Differentiate a TREEFUN2.
+%DIFF   Differentiate a TREEFUN2
 %   DIFF(F, N, DIM) is the N-th derivative of the TREEFUN2 F in the
 %   dimension DIM.
 %      DIM = 1 (default) is the derivative in the y direction.
@@ -43,18 +43,17 @@ dx = n(1);
 dy = n(2);
 m = f.n;
 
-boxes = leaves(f);
-for k = 1:length(boxes)
-    coeffs = boxes(k).coeffs;
-    dom = boxes(k).domain;
+ids = leaves(f);
+for id = ids(:).'
+    coeffs = f.coeffs{id};
+    dom = f.domain(:,id);
     for l = 1:dy, coeffs = [ cdiff(coeffs);     zeros(1, m) ]; end
     for l = 1:dx, coeffs = [ cdiff(coeffs.').', zeros(m, 1) ]; end
     % Rescale from [-1,1]^2:
     sclx = (2/diff(dom(1:2)))^dx;
     scly = (2/diff(dom(3:4)))^dy;
     % Assign to the true leaf box via its box ID:
-    id = boxes(k).id;
-    f.boxes(id).coeffs = sclx*scly*coeffs;
+    f.coeffs{id} = sclx*scly*coeffs;
 end
 
 end

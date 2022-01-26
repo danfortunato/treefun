@@ -1,20 +1,19 @@
 function f = refine(f)
 %REFINE   Refine a TREEFUN2.
 
-leaf = leaves(f);
-for k = 1:length(leaf)
-    id = leaf(k).id;
+ids = leaves(f);
+for id = ids(:).'
     % This was a leaf, so we'll use its coeffs to evaluate on
     % the new children
-    coeffs = f.boxes(id).coeffs;
+    coeffs = f.coeffs{id};
     % Split into four child boxes
     f = refineBox(f, id);
-    children = f.boxes(id).children;
+    children = f.children(:,id);
     [LL, LR, UL, UR] = coeffs2children(coeffs);
-    f.boxes(children(1)).coeffs = LL; % Lower left
-    f.boxes(children(2)).coeffs = LR; % Lower right
-    f.boxes(children(3)).coeffs = UL; % Upper left
-    f.boxes(children(4)).coeffs = UR; % Upper right
+    f.coeffs{children(1)} = LL; % Lower left
+    f.coeffs{children(2)} = LR; % Lower right
+    f.coeffs{children(3)} = UL; % Upper left
+    f.coeffs{children(4)} = UR; % Upper right
 end
 
 f = balance2(f);

@@ -6,7 +6,7 @@ function vals = coeffs2vals(coeffs)
 
 % Store the coeffs2vals matrices for sizes < cutoff
 persistent F
-cutoff = 30;
+cutoff = 50;
 
 % Get the length of the input:
 p = size(coeffs, 1);
@@ -20,8 +20,7 @@ elseif ( p < cutoff )
         F = cell(cutoff, 1);
     end
     if ( isempty(F{p}) )
-        x = chebpts(p);
-        F{p} = cos(acos(x) * (0:p-1));
+        F{p} = chebtech2.coeffs2vals(eye(p));
     end
     vals = F{p} * coeffs * F{p}.';
 else

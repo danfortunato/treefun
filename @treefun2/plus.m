@@ -10,18 +10,16 @@ if ( isnumeric( f ) )
     return
 elseif ( isnumeric( g ) )
     h = f;
-    boxes = leaves(h);
-    for k = 1:length(boxes)
-        id = boxes(k).id;
-        h.boxes(id).coeffs(1,1) = h.boxes(id).coeffs(1,1) + g;
+    ids = leaves(h);
+    for id = ids(:).'
+        h.coeffs{id}(1,1) = h.coeffs{id}(1,1) + g;
     end
 elseif ( isa(f, 'treefun2') && isa(g, 'treefun2') )
     % TODO: Assume on the same grid for now.
     h = f;
-    boxes = leaves(h);
-    for k = 1:length(boxes)
-        id = boxes(k).id;
-        h.boxes(id).coeffs = f.boxes(id).coeffs + g.boxes(id).coeffs;
+    ids = leaves(h);
+    for id = ids(:).'
+        h.coeffs{id} = f.coeffs{id} + g.coeffs{id};
     end
 end
 

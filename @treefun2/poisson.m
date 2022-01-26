@@ -1,173 +1,20 @@
 function u = poisson(f)
 
-%% Travis's box code
-
-% lvls = levels(f);
-% nlev = length(lvls)-1;
-% nblevel = cellfun(@length, lvls);
-% nboxes = length(f.boxes);
-% 
-% % TODO: Child box ordering?
-% ichildbox  = zeros(4, nboxes);
-% iboxlev    = zeros(nboxes, 1);
-% istartlev  = [1; cumsum(nblevel(1:end-1))+1];
-% 
-% levelbox   = [f.boxes.level];   % Intrinsic f.boxes order
-% iparentbox = [f.boxes.parent];  % Intrinsic f.boxes order
-% icolbox    = [f.boxes.col];     % Intrinsic f.boxes order
-% irowbox    = [f.boxes.row];     % Intrinsic f.boxes order
-% for k = 1:nboxes
-%     if ( f.boxes(k).parent == 0 )
-%         iparentbox(k) = -1;
-%     else
-%         iparentbox(k) = f.boxes(k).parent;
-%     end
-%     if ( isempty(f.boxes(k).children) )
-%         ichildbox(:,k) = -1;
-%     else
-%         ichildbox(:,k) = f.boxes(k).children([3 4 2 1]);
-%         %ichildbox(:,k) = f.boxes(k).children;
-%     end
-% end
-% 
-% idx = 1;
-% for l = 1:length(lvls)
-%     for k = 1:length(lvls{l})
-%         box = lvls{l}(k);
-%         iboxlev(idx) = box.id;
-%         idx = idx + 1;
-%     end
-% end
-% 
-% % These are the points that the box code will use to sample the function on
-% % each leaf box:
-% %
-% %    x0 = linspace(0+1/8, 1-1/8, 4);
-% %    [xx0, yy0] = meshgrid(x0);
-% %
-% % The order of values starts from the lower left corner of the box and
-% % proceeds upwards row by row from left to right.
-% ff = zeros(16, nboxes);
-% % leafs = leaves(f);
-% % for k = 1:length(leafs)
-% %     id = leafs(k).id;
-% %     vals = coeffs2boxcodevals(leafs(k).coeffs);
-% %     vals = flipud(vals);
-% %     vals = vals.';
-% %     ff(:,id) = vals(:);
-% % end
-% 
-% for k = 1:nboxes
-%     ibox = iboxlev(k);
-%     if ( ichildbox(1,ibox) < 0 )
-%         coeffs = f.boxes(ibox).coeffs;
-%         coeffs = coeffs(1:4,1:4);
-%         vals = coeffs2boxcodevals(coeffs);
-%         %vals = vals.';
-%         %vals = flipud(vals);
-%         ff(:,ibox) = vals(:);
-%         
-% %         dom = f.boxes(ibox).domain;
-% %         sclx = diff(dom(1:2));
-% %         scly = diff(dom(3:4));
-% %         x0 = linspace(dom(1)+sclx/8, dom(2)-sclx/8, 4);
-% %         y0 = linspace(dom(3)+scly/8, dom(4)-scly/8, 4);
-% %         [xx0, yy0] = meshgrid(x0, y0);
-% %         surf(xx0, yy0, vals)
-% % %         [xx, yy] = chebpts2(4, 4, dom);
-% % %         surf(xx, yy, chebvals)
-% %         hold on
-% %         drawnow
-% %         shg
-%     end
-% end
-% 
-% iprec = 3;
-% ifgrad = 0;
-% ifhess = 0;
-% 
-% % Domain info
-% zll = f.domain([1 3]);         % Lower left corner of domain
-% blength = diff(f.domain(1:2)); % Width of domain
-% %zll = [-0.5 -0.5];
-% %blength = 1;
-% 
-% %ff = 1+0*ff;
-% out = pfmm2d4pw(nlev, levelbox, iparentbox, ichildbox, icolbox, ...
-%     irowbox, nboxes, nblevel, iboxlev, istartlev, ifgrad, ifhess, ...
-%     iprec, ff, zll, blength);
-% 
-% u = f;
-% % for k = 1:nboxes
-% %     if ( ~isempty(u.boxes(k).children) )
-% %         %u.boxes(k).children = u.boxes(k).children([3 4 2 1]);
-% %         %u.boxes(k).children = u.boxes(k).children([4 3 1 2]);
-% %     end
-% % end
-% 
-% % leafs = leaves(f);
-% % for k = 1:length(leafs)
-% %     id = leafs(k).id;
-% %     vals = out.pot(:,id);
-% %     if ( max(abs(vals)) > 1e9 )
-% %         k
-% %     end
-% %     vals = reshape(vals, 4, 4);
-% %     vals = flipud(vals);
-% %     vals = vals.';
-% %     coeffs = zeros(f.n, f.n);
-% %     coeffs(1:4,1:4) = boxcodevals2coeffs(vals);
-% %     u.boxes(id).coeffs = coeffs;
-% % end
-% 
-% normSol = 0;
-% 
-% for k = 1:nboxes
-%     ibox = iboxlev(k);
-%     if ( ichildbox(1,ibox) < 0 )
-%         vals = out.pot(:,ibox);
-%         if ( max(abs(vals)) > 1e9 )
-%             ibox
-%         end
-%         vals = reshape(vals, 4, 4);
-%         %vals = flipud(vals);
-%         vals = vals.';
-%         coeffs = zeros(f.n, f.n);
-%         [coeffs(1:4,1:4), chebvals] = boxcodevals2coeffs(vals);
-%         u.boxes(ibox).coeffs = coeffs;
-%         
-%         %err = max(abs(vals(:) - truevals(:)));
-%         %normSol = max(err, normSol);
-% 
-% %         dom = u.boxes(ibox).domain;
-% %         sclx = diff(dom(1:2));
-% %         scly = diff(dom(3:4));
-% %         x0 = linspace(dom(1)+sclx/8, dom(2)-sclx/8, 4);
-% %         y0 = linspace(dom(3)+scly/8, dom(4)-scly/8, 4);
-% %         [xx0, yy0] = meshgrid(x0, y0);
-% %         %surf(xx0, yy0, vals)
-% %         [xx, yy] = chebpts2(4, 4, dom);
-% %         surf(xx, yy, chebvals)
-% %         hold on
-% %         drawnow
-% %         shg
-%     end
-% end
-
-%% Point FMM plus local correction
+%%% Point FMM plus local correction
 
 % Convert second-kind Chebyshev points to Legendre points on each box
-leaf = leaves(f);
-xx = cell(length(leaf), 1);
-yy = cell(length(leaf), 1);
-ww = cell(length(leaf), 1);
+ids = leaves(f);
+xx = cell(length(ids), 1);
+yy = cell(length(ids), 1);
+ww = cell(length(ids), 1);
 ff = leafvals(f);
 [x0, w0] = legpts(f.n, [0 1]);
 [xx0, yy0] = meshgrid(x0);
 ww0 = w0(:) * w0(:).';
 CV2LV = chebvals2legvals(eye(f.n));
-for k = 1:length(leaf)
-    dom = leaf(k).domain;
+for k = 1:length(ids)
+    id = ids(k);
+    dom = f.domain(:,id);
     sclx = diff(dom(1:2));
     scly = diff(dom(3:4));
     xx{k} = sclx*xx0 + dom(1);
@@ -209,11 +56,11 @@ out = rfmm2dpart(iprec,                    ...
                  ntarget, target,          ...
                  ifpottarg, ifgradtarg, ifhesstarg);
 
-uu = reshape(out.pot, f.n, f.n, length(leaf));
-uu = squeeze(mat2cell(uu, f.n, f.n, ones(length(leaf), 1)));
-ff_cfs = cell(length(leaf), 1);
+uu = reshape(out.pot, f.n, f.n, length(ids));
+uu = squeeze(mat2cell(uu, f.n, f.n, ones(length(ids), 1)));
+ff_cfs = cell(length(ids), 1);
 LV2LC = legvals2legcoeffs(eye(f.n));
-for k = 1:length(leaf)
+for k = 1:length(ids)
     ff_cfs{k} = LV2LC * ff{k} * LV2LC.';
 end
 %uu = correct_close(f, uu, ff, ff_cfs, ww);
@@ -221,10 +68,10 @@ uu = correct_close_batched(f, uu, ff, ff_cfs, ww);
 
 u = f;
 LV2CC = legvals2chebcoeffs(eye(f.n));
-for k = 1:length(leaf)
+for k = 1:length(ids)
     uu{k} = LV2CC * uu{k} * LV2CC.';
-    id = leaf(k).id;
-    u.boxes(id).coeffs = uu{k};
+    id = ids(k);
+    u.coeffs{id} = uu{k};
 end
 
 end
@@ -237,15 +84,16 @@ if ( isempty(naiveMats) || isempty(closeMats) )
     load('quadrature/laplace_16.mat', 'naiveMats', 'closeMats');
 end
 
-leaf = leaves(f);
-idToLinearIdx = zeros(max([leaf.id]), 1);
-for k = 1:length(leaf)
-    idToLinearIdx(leaf(k).id) = k;
+leafIDs = leaves(f);
+idToLinearIdx = zeros(max(leafIDs), 1);
+for k = 1:length(leafIDs)
+    id = leafIDs(k);
+    idToLinearIdx(id) = k;
 end
 
-for k = 1:length(leaf)
-    id  = leaf(k).id;
-    dom = leaf(k).domain;
+for k = 1:length(leafIDs)
+    id  = leafIDs(k);
+    dom = f.domain(:,id);
     sclx = diff(dom(1:2));
     scly = diff(dom(3:4));
 
@@ -260,10 +108,14 @@ for k = 1:length(leaf)
     uu{k} = uu{k} + accurate_u - naive_u;
 
     % Correct neighbors
-    neighborIDs = f.leafNeighbors(:, id);
+    sourcedom = f.domain(:,id);
+    sourcelevel = f.level(id);
+    neighborIDs = f.leafNeighbors(:,id);
     for nid = [neighborIDs{:}]
         kn = idToLinearIdx(nid);
-        code = computeCode(leaf(k), leaf(kn));
+        neighbordom = f.domain(:,leafIDs(kn));
+        neighborlevel = f.level(leafIDs(kn));
+        code = computeCode(sourcedom, sourcelevel, neighbordom, neighborlevel);
         naive_u = reshape(naiveMats(:,:,code) * tau(:), f.n, f.n);
         naive_u = naive_u - log(sclx)/(2*pi) * sum(tau, 'all');
         accurate_u = reshape(reshape(C, [], f.n^2) * closeMats(:,:,code), f.n, f.n);
@@ -286,11 +138,11 @@ if ( isempty(naiveMats) || isempty(closeMats) )
     load(file, 'naiveMats', 'closeMats');
 end
 
-leaf = leaves(f);
-nleaf = length(leaf);
-idToLinearIdx = zeros(max([leaf.id]), 1);
+leafIDs = leaves(f);
+nleaf = length(leafIDs);
+idToLinearIdx = zeros(max(leafIDs), 1);
 for k = 1:nleaf
-    idToLinearIdx(leaf(k).id) = k;
+    idToLinearIdx(leafIDs(k)) = k;
 end
 
 tau = zeros(numel(ff{1}), nleaf);
@@ -305,18 +157,22 @@ codeToNeighbor = zeros(ncodes, nleaf);
 codeToIdx      = zeros(ncodes, nleaf);
 
 for k = 1:nleaf
-    id  = leaf(k).id;
-    dom = leaf(k).domain;
+    id  = leafIDs(k);
+    dom = f.domain(:,id);
     sclx = diff(dom(1:2));
     scly = diff(dom(3:4));
 
     tau(:,k) = reshape(ff{k}.*ww{k}, [], 1);
     C(:,k) = reshape(ff_cfs{k}*sclx*scly, [], 1);
 
+    sourcedom = f.domain(:,id);
+    sourcelevel = f.level(id);
     neighborIDs = f.leafNeighbors(:,id);
-    for nid = [neighborIDs{:}]
+    for nid = cell2mat(neighborIDs).'
         kn = idToLinearIdx(nid);
-        code = computeCode(leaf(k), leaf(kn));
+        neighbordom = f.domain(:,leafIDs(kn));
+        neighborlevel = f.level(leafIDs(kn));
+        code = computeCode(sourcedom, sourcelevel, neighbordom, neighborlevel);
         codeToLeaf{code}(end+1) = k;
         codeToIdx(code,k) = length(codeToLeaf{code});
         codeToNeighbor(code,k) = kn;
@@ -330,7 +186,8 @@ for code = 1:ncodes
 end
 
 for k = 1:nleaf
-    dom = leaf(k).domain;
+    id = leafIDs(k);
+    dom = f.domain(:,id);
     sclx = diff(dom(1:2));
 
     % Correct self
@@ -353,14 +210,16 @@ end
 
 end
 
-function code = computeCode(sourcebox, neighborbox)
+function code = computeCode(dom, level, ndom, nlevel)
 
-dom  = sourcebox.domain;
-ndom = neighborbox.domain;
+% dom = domain of source box
+% level = level of source box
+% ndom = domain of neighbor box
+% nlevel = level of neighbor box
 
 % Codes go clockwise starting from the left neighbor
-switch sourcebox.level
-    case neighborbox.level
+switch level
+    case nlevel
         % Neighbor is the same level
         if ( ndom(1) < dom(1) )
             if ( ndom(3) < dom(3) )
@@ -385,7 +244,7 @@ switch sourcebox.level
                 code = 4; % Right up
             end
         end
-    case neighborbox.level+1
+    case nlevel+1
         % Neighbor is coarser
         if ( ndom(1) < dom(1) )
             if ( abs(ndom(4) - dom(3)) < 1e-14 )
@@ -424,7 +283,7 @@ switch sourcebox.level
                 end
             end
         end
-    case neighborbox.level-1
+    case nlevel-1
         % Neighbor is finer
         if ( ndom(1) < dom(1) )
             if ( ndom(3) < dom(3) )

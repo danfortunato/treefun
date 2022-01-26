@@ -9,34 +9,34 @@ function f = compose(op, f, g)
 %   function handle OP is applied to F and G in value space.
 
 if ( nargin == 2 )
-    leaf = leaves(f);
-    for k = 1:length(leaf)
-        ff = coeffs2vals(leaf(k).coeffs);
+    ids = leaves(f);
+    for id = ids(:).'
+        ff = treefun2.coeffs2vals(f.coeffs{id});
         ff(abs(ff) < 1e-20) = 1e-20;
-        f.boxes(leaf(k).id).coeffs = vals2coeffs(op(ff));
+        f.coeffs{id} = treefun2.vals2coeffs(op(ff));
     end
 elseif ( isa(f, 'treefun2') && isa(g, 'treefun2') )
     % F and G are both TREEFUN2s:
-    leaf_f = leaves(f);
-    leaf_g = leaves(g);
-    for k = 1:length(leaff)
-        ff = coeffs2vals(leaf_f(k).coeffs);
-        gg = coeffs2vals(leaf_g(k).coeffs);
-        f.boxes(leaf_f(k).id).coeffs = vals2coeffs(op(ff,gg));
+    ids_f = leaves(f);
+    ids_g = leaves(g);
+    for k = 1:length(ids_f)
+        ff = treefun2.coeffs2vals(f.coeffs{ids_f(k)});
+        gg = treefun2.coeffs2vals(g.coeffs{ids_g(k)});
+        f.coeffs{ids_f(k)} = treefun2.vals2coeffs(op(ff,gg));
     end
 elseif ( isa(f, 'treefun2') )
     % G is not a TREEFUN2:
-    leaf = leaves(f);
-    for k = 1:length(leaf)
-        ff = coeffs2vals(leaf(k).coeffs);
-        f.boxes(leaf(k).id).coeffs = vals2coeffs(op(ff,g));
+    ids = leaves(f);
+    for id = ids(:).'
+        ff = treefun2.coeffs2vals(f.coeffs{id});
+        f.coeffs{id} = treefun2.vals2coeffs(op(ff,g));
     end
 elseif ( isa(g, 'treefun2') )
     % F is not a TREEFUN2:
-    leaf = leaves(g);
-    for k = 1:length(leaf)
-        gg = coeffs2vals(leaf(k).coeffs);
-        g.boxes(leaf(k).id).coeffs = vals2coeffs(op(f,gg));
+    ids = leaves(g);
+    for id = ids(:).'
+        gg = treefun2.coeffs2vals(g.coeffs{id});
+        g.coeffs{id} = treefun2.vals2coeffs(op(f,gg));
     end
     f = g;
 end

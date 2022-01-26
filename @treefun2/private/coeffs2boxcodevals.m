@@ -31,7 +31,7 @@ end
 
 %[px, py] = size(coeffs);
 %vals = Eval(:,1:py) * coeffs * Eval(:,1:px).';
-chebvals = coeffs2vals(coeffs);
+chebvals = treefun2.coeffs2vals(coeffs);
 vals = Eval * chebvals * Eval.';
 
 end
