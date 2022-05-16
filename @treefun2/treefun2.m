@@ -1,4 +1,37 @@
 classdef treefun2  %#ok<*PROP,*PROPLC>
+%TREEFUN2   Piecewise polynomial on an adaptive quadtree.
+%   TREEFUN2(F) constructs a TREEFUN2 object representing the function F on
+%   the domain [-1, 1] x [-1, 1]. F may be a function handle, scalar, or
+%   chebfun2 object. A TREEFUN2 is constructed by recursively subdividing
+%   the domain until each piece is well approximated by a bivariate
+%   polynomial of degree (N-1) x (N-1). The default is N = 16.
+%
+%   TREEFUN2(F, N) uses piecewise polynomials of degree (N-1) x (N-1).
+%
+%   TREEFUN2(F, [A B C D]) specifies a domain [A, B] x [C, D] on which the
+%   TREEFUN2 is defined.
+%
+%   TREEFUN2(F, [A B C D], N) specifies both a degree and a domain.
+%
+%   TREEFUN2(F, TF) creates a TREEFUN2 approximation to F using the tree
+%   structure from a previously-defined TREEFUN2. No adaptive construction
+%   takes place; the function F is simply initialized on the grid inherited
+%   from TF.
+%
+%   TREEFUN2(..., OPTS) also passes the options contained in the structure
+%   OPTS. Possible options are:
+%
+%     OPTS.BALANCE       [true] / false
+%
+%     - If true, enforce that the tree is balanced (also called level
+%       restricted). This condition means that the neighbors of any box
+%       must be no more than one level apart from the box.
+
+%     OPTS.NEIGHBORS     [true] / false
+%
+%     - If true, generate arrays of neighbor indices for each box. These
+%     arrays are then stored in the TREEFUN2 properties flatNeighbors and
+%     leafNeighbors.
 
     properties
 
