@@ -54,7 +54,7 @@ classdef treefun
                         sclx = diff(dom);
                         x = sclx*x0 + dom(1);
                         vals = func(x);
-                        f.boxes(id).coeffs = vals2coeffs(vals);
+                        f.boxes(id).coeffs = treefun.vals2coeffs(vals);
                     end
                     return
                 elseif ( isscalar(varargin{2}) )   % TREEFUN(F, N)
@@ -161,6 +161,13 @@ classdef treefun
 
     end
 
+    methods ( Static )
+
+        coeffs = vals2coeffs(vals);
+        vals = coeffs2vals(coeffs);
+
+    end
+
 end
 
 function [resolved, coeffs] = isResolvedValues(f, dom, n, tol)
@@ -178,7 +185,7 @@ xx  = sclx*xx0  + dom(1);
 xxx = sclx*xxx0 + dom(1);
 
 vals = f(xx);
-coeffs = vals2coeffs(vals);
+coeffs = treefun.vals2coeffs(vals);
 F = f(xxx);
 G = coeffs2refvals(coeffs);
 err = norm(F(:) - G(:), inf);
@@ -198,7 +205,7 @@ sclx = diff(dom);
 xx = sclx*xx0  + dom(1);
 
 vals = f(xx);
-coeffs = vals2coeffs(vals);
+coeffs = treefun.vals2coeffs(vals);
 err = sum(abs(coeffs(end-1:end))) / 2;
 vmax = max(abs(vals(:)));
 resolved = ( err < tol * max(vmax, 1) );
