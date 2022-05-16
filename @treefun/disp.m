@@ -23,7 +23,7 @@ nlevels = height(f); % Number of levels
 disp('   treefun object')
 fprintf('       domain          order   length   levels\n');
 fprintf('[%8.2g,%8.2g]    %5i   %6i   %6i\n', ...
-    dom(1), dom(2), f.n, nleaves, nlevels);
+    dom(1), dom(2), f.n-1, nleaves, nlevels);
 
 if ( loose )
     fprintf('\n');

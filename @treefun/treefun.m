@@ -1,10 +1,28 @@
 classdef treefun
+%TREEFUN   Piecewise polynomial on an adaptive binary tree.
+%   TREEFUN(F) constructs a TREEFUN object representing the function F on
+%   the interval [-1, 1]. F may be a function handle, scalar, or chebfun
+%   object. A TREEFUN is constructed by recursively subdividing the
+%   domain until each piece is well approximated by a polynomial of degree
+%   N-1. The default is N = 16.
+%
+%   TREEFUN(F, N) uses piecewise polynomials of degree N-1.
+%
+%   TREEFUN(F, [A B]) specifies a domain [A, B] on which the TREEFUN is
+%   defined.
+%
+%   TREEFUN(F, [A B], N) specifies both a degree and a domain.
+%
+%   TREEFUN(F, N, TOL), TREEFUN(F, [A B], TOL), or TREEFUN(F, [A B], N,
+%   TOL) resolves each piece to the specified tolerance TOL. The default is
+%   TOL = 1e-12.
 
     properties
 
         boxes
         n = 16
         domain = [-1 1]
+        tol = 1e-12
 
     end
 
@@ -16,16 +34,17 @@ classdef treefun
                 return
             end
 
+            func = varargin{1};
+            if ( isnumeric(func) && isscalar(func) )
+                func = @(x) func + 0*x;
+            elseif ( isa(func, 'chebfun') )
+                func = @(x) feval(func, x);
+            end
+
             if ( nargin == 2 )
                 if ( isa(varargin{2}, 'treefun') ) % TREEFUN(F, TF)
                     % We were given the tree structure
                     f = varargin{2};
-                    func = varargin{1};
-                    if ( isnumeric(func) && isscalar(func) )
-                        func = @(x) func + 0*x;
-                    elseif ( isa(func, 'chebfun') )
-                        func = @(x) feval(func, x);
-                    end
                     % We just need to fill in the leaf coefficients
                     L = [leaves(f).id];
                     x0 = chebpts(f.n, [0 1]);
@@ -38,28 +57,26 @@ classdef treefun
                         f.boxes(id).coeffs = vals2coeffs(vals);
                     end
                     return
-                elseif ( isscalar(varargin{2}) ) % TREEFUN(F, N)
+                elseif ( isscalar(varargin{2}) )   % TREEFUN(F, N)
                     f.n = varargin{2};
-                else
-                    f.domain = varargin{2};  % TREEFUN(F, [A B])
+                else                               % TREEFUN(F, [A B])
+                    f.domain = varargin{2};
                 end
             elseif ( nargin == 3 )
-                f.domain = varargin{2};      % TREEFUN(F, [A B], N)
+                if ( length(varargin{2}) == 1 )    % TREEFUN(F, N, TOL)
+                    f.n = varargin{2};
+                    f.tol = varargin{3};
+                elseif ( varargin{3} > 1 )         % TREEFUN(F, [A B], N)
+                    f.domain = varargin{2};
+                    f.n = varargin{3};
+                else                               % TREEFUN(F, [A B], TOL)
+                    f.domain = varargin{2};
+                    f.tol = varargin{3};
+                end
+            elseif ( nargin == 4 )                 % TREEFUN(F, [A B], N, TOL)
+                f.domain = varargin{2};
                 f.n = varargin{3};
-            end
-
-            func = varargin{1};
-            if ( isnumeric(func) && isscalar(func) )
-                func = @(x) func + 0*x;
-            elseif ( isa(func, 'chebfun') )
-                func = @(x) feval(func, x);
-            elseif ( isstruct(func) )
-                f.boxes = func;
-                f.domain = f.boxes(1).domain;
-                f.n = size(f.boxes(end).coeffs, 1);
-                %f = balance2(f);
-                %[f.flatNeighbors, f.leafNeighbors] = generateNeighbors(f);
-                return
+                f.tol = varargin{4};
             end
 
             f.boxes = struct();
@@ -72,8 +89,7 @@ classdef treefun
             f.boxes(1).coeffs   = [];
             f.boxes(1).col      = 1;
 
-            % f = buildDepthFirst(f, func);
-            f = buildBreadthFirst(f, func);
+            f = buildBreadthFirst(f, func, @isResolvedValues);
 
         end
 
@@ -116,12 +132,12 @@ classdef treefun
 
         end
 
-        function f = buildBreadthFirst(f, func)
+        function f = buildBreadthFirst(f, func, isResolved)
 
             % Note: the length changes at each iteration here
             id = 1;
             while ( id <= length(f.boxes) )
-                [resolved, coeffs] = isResolved(func, f.boxes(id).domain, f.n);
+                [resolved, coeffs] = isResolved(func, f.boxes(id).domain, f.n, f.tol);
                 if ( resolved )
                     f.boxes(id).coeffs = coeffs;
                     f.boxes(id).height = 0;
@@ -147,13 +163,11 @@ classdef treefun
 
 end
 
-function [resolved, coeffs] = isResolved(f, dom, n)
+function [resolved, coeffs] = isResolvedValues(f, dom, n, tol)
 
-persistent xx0 xxx0 nstored
-
-tol = 1e-10;
 nrefpts = 2*n; % Sample at equispaced points to test error
 
+persistent xx0 xxx0 nstored
 if ( isempty(xx0) || isempty(xxx0) || n ~= nstored )
     nstored = n;
     xx0 = chebpts(n, [0 1 0 1]);
@@ -165,25 +179,27 @@ xxx = sclx*xxx0 + dom(1);
 
 vals = f(xx);
 coeffs = vals2coeffs(vals);
-err_cfs = sum(abs(coeffs(end-1:end))) / 2;
-
 F = f(xxx);
 G = coeffs2refvals(coeffs);
-err_vals = norm(F(:) - G(:), inf);
+err = norm(F(:) - G(:), inf);
+vmax = max(abs(vals(:)));
+resolved = ( err < tol * max(vmax, 1) );
 
-% err = err_cfs;
-err = err_vals;
+end
 
-% tech = chebtech2;
-% tech.coeffs = coeffs;
-% pref = tech.techPref();
-% pref.chebfuneps = 1e-1;
-% data = struct();
-% data = chebtech.parseDataInputs(data, pref);
-% data.vscale = max(data.vscale, vscale(tech));
-% ishappy = standardCheck(tech, vals, data, pref);
-% ishappy
+function [resolved, coeffs] = isResolvedCoeffs(f, dom, n, tol)
 
+persistent xx0 nstored
+if ( isempty(xx0) || n ~= nstored )
+    nstored = n;
+    xx0 = chebpts(n, [0 1 0 1]);
+end
+sclx = diff(dom);
+xx = sclx*xx0  + dom(1);
+
+vals = f(xx);
+coeffs = vals2coeffs(vals);
+err = sum(abs(coeffs(end-1:end))) / 2;
 vmax = max(abs(vals(:)));
 resolved = ( err < tol * max(vmax, 1) );
 
