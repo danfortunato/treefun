@@ -177,7 +177,7 @@ nrefpts = 2*n; % Sample at equispaced points to test error
 persistent xx0 xxx0 nstored
 if ( isempty(xx0) || isempty(xxx0) || n ~= nstored )
     nstored = n;
-    xx0 = chebpts(n, [0 1 0 1]);
+    xx0 = chebpts(n, [0 1]);
     xxx0 = linspace(0, 1, nrefpts).';
 end
 sclx = diff(dom);
