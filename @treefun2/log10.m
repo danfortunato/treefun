@@ -9,6 +9,6 @@ if ( isempty(f) )
     return
 end
 
-f = compose(@log10, f);
+f = compose(@(x) real(log10(x)), f);
 
 end
