@@ -1,7 +1,16 @@
-function vals = feval(f, x, y)
-%FEVAL   Evaluate a TREEFUN2.
+function [dx, dy] = fevald(f, x, y)
+%FEVALD   Evaluate the derivative of a TREEFUN2.
 
-vals = zeros(size(x));
+persistent D DT
+if ( isempty(D) || size(D,1) ~= f.n)
+    S = ultraS.convertmat(f.n, 0, 0);
+    Dultra = ultraS.diffmat(f.n, 1);
+    D = full(S \ Dultra);
+    DT = D.';
+end
+
+dx = zeros(size(x));
+dy = zeros(size(x));
 [ids, xs, ys, idxs] = pt2leaf(f, x, y);
 
 for k = 1:length(ids)
@@ -12,7 +21,10 @@ for k = 1:length(ids)
     xm = sclx*(xs{k}-dom(1))-1;
     ym = scly*(ys{k}-dom(3))-1;
     if ( ~isempty(f.coeffs{id}) )
-        vals(idxs{k}) = clenshaw2d(f.coeffs{id}, xm, ym);
+        dx_cfs = f.coeffs{id} * DT;
+        dy_cfs = D * f.coeffs{id};
+        dx(idxs{k}) = clenshaw2d(dx_cfs, xm, ym);
+        dy(idxs{k}) = clenshaw2d(dy_cfs, xm, ym);
     end
 end
 
