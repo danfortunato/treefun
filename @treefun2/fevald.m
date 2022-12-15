@@ -21,8 +21,8 @@ for k = 1:length(ids)
     xm = sclx*(xs{k}-dom(1))-1;
     ym = scly*(ys{k}-dom(3))-1;
     if ( ~isempty(f.coeffs{id}) )
-        dx_cfs = f.coeffs{id} * DT;
-        dy_cfs = D * f.coeffs{id};
+        dx_cfs = sclx * f.coeffs{id} * DT;
+        dy_cfs = scly * D * f.coeffs{id};
         dx(idxs{k}) = clenshaw2d(dx_cfs, xm, ym);
         dy(idxs{k}) = clenshaw2d(dy_cfs, xm, ym);
     end
