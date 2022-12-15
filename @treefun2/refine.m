@@ -1,10 +1,13 @@
-function f = refine(f)
+function f = refine(f, ids)
 %REFINE   Refine a TREEFUN2.
 
-ids = leaves(f);
+if ( nargin < 2 )
+    ids = leaves(f);
+end
+
 for id = ids(:).'
-    % This was a leaf, so we'll use its coeffs to evaluate on
-    % the new children
+    % This was a leaf, so we'll use its coeffs to evaluate on the new
+    % children
     coeffs = f.coeffs{id};
     % Split into four child boxes
     f = refineBox(f, id);
@@ -16,6 +19,7 @@ for id = ids(:).'
     f.coeffs{children(4)} = UR; % Upper right
 end
 
-f = balance2(f);
+f = balance(f);
+[f.flatNeighbors, f.leafNeighbors] = generateNeighbors(f);
 
 end
