@@ -19,7 +19,13 @@ for id = ids(:).'
     f.coeffs{children(4)} = UR; % Upper right
 end
 
-f = balance(f);
+% Do a cumulative sum in reverse to correct the heights
+for k = length(f.id):-1:1
+    if ( ~isLeaf(f, k) )
+        f.height(k) = 1 + max(f.height(f.children(:,k)));
+    end
+end
+
 [f.flatNeighbors, f.leafNeighbors] = generateNeighbors(f);
 
 end
