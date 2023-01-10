@@ -101,7 +101,7 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
                 if ( isfield(opts1, 'balance') )
                     opts.balance = opts1.balance;
                 end
-                if ( isfield(opts, 'neighbors') )
+                if ( isfield(opts1, 'neighbors') )
                     opts.neighbors = opts1.neighbors;
                 end
             elseif ( nargin == 9 )
