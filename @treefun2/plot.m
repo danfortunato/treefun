@@ -6,7 +6,7 @@ function varargout = plot(f, varargin)
 %   See also SURF, MESH.
 
 holdState = ishold();
-nplotpts = 400;
+nplotpts = 800;
 
 % Plot the function
 hold on
