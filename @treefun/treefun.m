@@ -112,7 +112,7 @@ classdef treefun
             child1.level    = parent.level+1;
             child1.height   = 0;
             child1.coeffs   = [];
-            child1.col      = 2*(parent.col-1) + 1;
+            child1.col      = 2*parent.col;
             f.boxes(end+1) = child1;
 
             child2 = struct();
@@ -123,7 +123,7 @@ classdef treefun
             child2.level    = parent.level+1;
             child2.height   = 0;
             child2.coeffs   = [];
-            child2.col      = 2*(parent.col-1) + 2;
+            child2.col      = 2*parent.col + 1;
             f.boxes(end+1) = child2;
 
             f.boxes(id).children = [child1.id, child2.id];

@@ -13,8 +13,9 @@ f.children(:,cid1) = 0;
 f.level(cid1)      = f.level(id)+1;
 f.height(cid1)     = 0;
 f.coeffs{cid1}     = [];
-f.col(cid1)        = 2*(f.col(id)-1) + 1;
-f.row(cid1)        = 2*(f.row(id)-1) + 1;
+f.col(cid1)        = 2*f.col(id);
+f.row(cid1)        = 2*f.row(id);
+f.morton(cid1)     = cartesian2morton(f.col(cid1), f.row(cid1));
 
 cid2 = length(f.id)+1;
 f.domain(:,cid2)   = [xmid dom(2) dom(3) ymid];
@@ -24,8 +25,9 @@ f.children(:,cid2) = 0;
 f.level(cid2)      = f.level(id)+1;
 f.height(cid2)     = 0;
 f.coeffs{cid2}     = [];
-f.col(cid2)        = 2*(f.col(id)-1) + 2;
-f.row(cid2)        = 2*(f.row(id)-1) + 1;
+f.col(cid2)        = 2*f.col(id) + 1;
+f.row(cid2)        = 2*f.row(id);
+f.morton(cid2)     = cartesian2morton(f.col(cid2), f.row(cid2));
 
 cid3 = length(f.id)+1;
 f.domain(:,cid3)   = [dom(1) xmid ymid dom(4)];
@@ -35,8 +37,9 @@ f.children(:,cid3) = 0;
 f.level(cid3)      = f.level(id)+1;
 f.height(cid3)     = 0;
 f.coeffs{cid3}     = [];
-f.col(cid3)        = 2*(f.col(id)-1) + 1;
-f.row(cid3)        = 2*(f.row(id)-1) + 2;
+f.col(cid3)        = 2*f.col(id);
+f.row(cid3)        = 2*f.row(id) + 1;
+f.morton(cid3)     = cartesian2morton(f.col(cid3), f.row(cid3));
 
 cid4 = length(f.id)+1;
 f.domain(:,cid4)   = [xmid dom(2) ymid dom(4)];
@@ -46,8 +49,9 @@ f.children(:,cid4) = 0;
 f.level(cid4)      = f.level(id)+1;
 f.height(cid4)     = 0;
 f.coeffs{cid4}     = [];
-f.col(cid4)        = 2*(f.col(id)-1) + 2;
-f.row(cid4)        = 2*(f.row(id)-1) + 2;
+f.col(cid4)        = 2*f.col(id) + 1;
+f.row(cid4)        = 2*f.row(id) + 1;
+f.morton(cid4)     = cartesian2morton(f.col(cid4), f.row(cid4));
 
 f.children(:,id) = [cid1 cid2 cid3 cid4];
 f.height(id) = 1;

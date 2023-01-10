@@ -45,6 +45,7 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
         coeffs
         col
         row
+        morton
         flatNeighbors
         leafNeighbors
 
@@ -109,6 +110,7 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
                 %   COEFFS, COL, ROW)
                 [f.domain, f.level, f.height, f.id, f.parent, ...
                     f.children, f.coeffs, f.col, f.row] = deal(varargin{:});
+                f.morton = cartesian2morton(f.col, f.row);
                 f.n = size(f.coeffs{end}, 1);
                 f = balance(f);
                 [f.flatNeighbors, f.leafNeighbors] = generateNeighbors(f);
@@ -129,11 +131,12 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
             f.parent(1)     = 0;
             f.children(:,1) = zeros(4, 1);
             f.coeffs{1}     = [];
-            f.col(1)        = 1;
-            f.row(1)        = 1;
+            f.col           = uint64(0);
+            f.row           = uint64(0);
             
             % f = buildDepthFirst(f, func);
             f = buildBreadthFirst(f, func);
+            f.morton = cartesian2morton(f.col, f.row);
 
             % Now do level restriction
             if ( opts.balance )
@@ -157,7 +160,6 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
 
     methods ( Access = private )
 
-        f = balance(f);
         f = refineBox(f, id);
 
         function f = buildBreadthFirst(f, func)
