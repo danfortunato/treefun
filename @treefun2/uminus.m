@@ -7,8 +7,10 @@ function f = uminus(f)
 %   See also UPLUS.
 
 ids = leaves(f);
+coeffs = f.coeffs;
 for id = ids(:).'
-    f.coeffs{id} = -f.coeffs{id};
+    coeffs{id} = -coeffs{id};
 end
+f.coeffs = coeffs;
 
 end
