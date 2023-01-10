@@ -237,13 +237,13 @@ function [resolved, coeffs] = isResolved(f, dom, n)
 
 persistent xx0 yy0 xxx0 yyy0 nstored
 
-%tol = 1e-9;
 tol = 1e-12;
+nalias = 2*n;
 nrefpts = 2*n; % Sample at equispaced points to test error
 
 if ( isempty(xx0) || isempty(xxx0) || n ~= nstored )
     nstored = n;
-    [xx0, yy0] = chebpts2(n, n, [0 1 0 1]);
+    [xx0, yy0] = chebpts2(nalias, nalias, [0 1 0 1]);
     [xxx0, yyy0] = meshgrid(linspace(0, 1, nrefpts));
 end
 sclx = diff(dom(1:2));
@@ -253,17 +253,21 @@ yy = scly*yy0 + dom(3); yyy = scly*yyy0 + dom(3);
 
 vals = f(xx,yy);
 coeffs = treefun2.vals2coeffs(vals);
+coeffs = coeffs(1:n,1:n);
 Ex = sum(abs(coeffs(end-1:end,:)), 'all') / (2*n);
 Ey = sum(abs(coeffs(:,end-1:end)), 'all') / (2*n);
 err_cfs = (Ex + Ey) / 2;
 
 % F = f(xxx,yyy);
 % G = coeffs2refvals(coeffs);
-% err_vals = norm(F(:) - G(:), inf);
+% err_vals = max(abs(F(:) - G(:)));
 
 err = err_cfs;
+%err = min(err_cfs, err_vals);
+h = sclx;
+eta = 0;
 
 vmax = max(abs(vals(:)));
-resolved = ( err < tol * max(vmax, 1) );
+resolved = ( err * h^eta < tol * max(vmax, 1) );
 
 end
