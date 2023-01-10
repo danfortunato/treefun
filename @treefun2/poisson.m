@@ -1,20 +1,24 @@
-function u = poisson(f)
+function u = poisson(f, isource)
 
 %%% Point FMM plus local correction
 
 n = f.n;
 domain = f.domain;
+coeffs = f.coeffs;
 
 % Convert second-kind Chebyshev points to Legendre points on each box
+Timer.tic();
 ids = leaves(f);
-xx = cell(length(ids), 1);
-yy = cell(length(ids), 1);
-ww = cell(length(ids), 1);
-ff = leafvals(f);
+xx     = cell(length(ids), 1);
+yy     = cell(length(ids), 1);
+ww     = cell(length(ids), 1);
+ff     = cell(length(ids), 1);
+ff_cfs = cell(length(ids), 1);
 [x0, w0] = legpts(n, [0 1]);
 [xx0, yy0] = meshgrid(x0);
 ww0 = w0(:) * w0(:).';
-CV2LV = chebvals2legvals(eye(n));
+CC2LV = chebcoeffs2legvals(eye(n));
+CC2LC = chebcoeffs2legcoeffs(eye(n));
 for k = 1:length(ids)
     id = ids(k);
     dom = domain(:,id);
@@ -23,16 +27,23 @@ for k = 1:length(ids)
     xx{k} = sclx*xx0 + dom(1);
     yy{k} = scly*yy0 + dom(3);
     ww{k} = sclx*scly*ww0;
-    ff{k} = CV2LV * ff{k} * CV2LV.';
+    ff{k}     = CC2LV * coeffs{id} * CC2LV.';
+    ff_cfs{k} = CC2LC * coeffs{id} * CC2LC.';
 end
+Timer.toc('Vals to coeffs');
 
-xx_ = [xx{:}]; xx_ = xx_(:);
-yy_ = [yy{:}]; yy_ = yy_(:);
-ww_ = [ww{:}]; ww_ = ww_(:);
-ff_ = [ff{:}]; ff_ = ff_(:);
+if ( nargin < 2 )
+    isource = true(size(ids));
+end
+nisource = length(find(isource));
+
+xx_ = [xx{isource}]; xx_ = xx_(:);
+yy_ = [yy{isource}]; yy_ = yy_(:);
+ww_ = [ww{isource}]; ww_ = ww_(:);
+ff_ = [ff{isource}]; ff_ = ff_(:);
 
 iprec = 4;
-nsource = length(f) * n^2;
+nsource = nisource * n^2;
 source = [xx_ yy_].';
 ifcharge = 1;
 charge = -ww_.*ff_/(2*pi);
@@ -65,17 +76,13 @@ if ( out.ier ~= 0 )
     error('FMM exited with error code %d\n.', out.ier);
 end
 
-uu = reshape(out.pot, n, n, length(ids));
-uu = squeeze(mat2cell(uu, n, n, ones(length(ids), 1)));
-ff_cfs = cell(length(ids), 1);
-LV2LC = legvals2legcoeffs(eye(n));
-for k = 1:length(ids)
-    ff_cfs{k} = LV2LC * ff{k} * LV2LC.';
-end
+uu = reshape(out.pot, n, n, nisource);
+temp = zeros(n, n, length(ids));
+temp(:,:,isource) = uu;
+uu = temp;
 
 Timer.tic();
-%uu = correct_close(f, uu, ff, ff_cfs, ww);
-uu = correct_close_batched(f, uu, ff, ff_cfs, ww);
+uu = correct_close_batched(f, uu, ff, ff_cfs, ww, isource);
 Timer.toc('Close correction');
 
 u = f;
@@ -83,8 +90,7 @@ coeffs = u.coeffs;
 LV2CC = legvals2chebcoeffs(eye(n));
 for k = 1:length(ids)
     id = ids(k);
-    uu{k} = LV2CC * uu{k} * LV2CC.';
-    coeffs{id} = uu{k};
+    coeffs{id} = LV2CC * uu(:,:,k) * LV2CC.';
 end
 u.coeffs = coeffs;
 
@@ -100,11 +106,6 @@ if ( isempty(naiveMats) || isempty(closeMats) )
     load(file, 'naiveMats', 'closeMats');
 end
 
-n = f.n;
-domain = f.domain;
-level = f.level;
-leafNeighbors = f.leafNeighbors;
-
 leafIDs = leaves(f);
 idToLinearIdx = zeros(max(leafIDs), 1);
 for k = 1:length(leafIDs)
@@ -114,7 +115,7 @@ end
 
 for k = 1:length(leafIDs)
     id  = leafIDs(k);
-    dom = domain(:,id);
+    dom = f.domain(:,id);
     sclx = diff(dom(1:2));
     scly = diff(dom(3:4));
 
@@ -122,24 +123,24 @@ for k = 1:length(leafIDs)
     C = ff_cfs{k} * sclx * scly;
 
     % Correct self
-    naive_u = reshape(naiveMats(:,:,1) * tau(:), n, n);
+    naive_u = reshape(naiveMats(:,:,1) * tau(:), f.n, f.n);
     naive_u = naive_u - log(sclx)/(2*pi) * (sum(tau, 'all') - tau);
-    accurate_u = reshape(reshape(C, [], n^2) * closeMats(:,:,1), n, n);
+    accurate_u = reshape(reshape(C, [], f.n^2) * closeMats(:,:,1), f.n, f.n);
     accurate_u = accurate_u.' - C(1,1)*log(sclx)/(2*pi);
     uu{k} = uu{k} + accurate_u - naive_u;
 
     % Correct neighbors
-    sourcedom = domain(:,id);
-    sourcelevel = level(id);
-    neighborIDs = leafNeighbors(:,id);
+    sourcedom = f.domain(:,id);
+    sourcelevel = f.level(id);
+    neighborIDs = f.leafNeighbors(:,id);
     for nid = cat(1,neighborIDs{:}).'
         kn = idToLinearIdx(nid);
-        neighbordom = domain(:,leafIDs(kn));
-        neighborlevel = level(leafIDs(kn));
+        neighbordom = f.domain(:,leafIDs(kn));
+        neighborlevel = f.level(leafIDs(kn));
         code = computeCode(sourcedom, sourcelevel, neighbordom, neighborlevel);
-        naive_u = reshape(naiveMats(:,:,code) * tau(:), n, n);
+        naive_u = reshape(naiveMats(:,:,code) * tau(:), f.n, f.n);
         naive_u = naive_u - log(sclx)/(2*pi) * sum(tau, 'all');
-        accurate_u = reshape(reshape(C, [], n^2) * closeMats(:,:,code), n, n);
+        accurate_u = reshape(reshape(C, [], f.n^2) * closeMats(:,:,code), f.n, f.n);
         accurate_u = accurate_u.' - C(1,1)*log(sclx)/(2*pi);
         uu{kn} = uu{kn} + accurate_u - naive_u;
     end
@@ -147,7 +148,7 @@ end
 
 end
 
-function uu = correct_close_batched(f, uu, ff, ff_cfs, ww)
+function uu = correct_close_batched(f, uu, ff, ff_cfs, ww, isource)
 
 persistent naiveMats closeMats
 
@@ -181,6 +182,10 @@ codeToNeighbor = zeros(ncodes, nleaf);
 codeToIdx      = zeros(ncodes, nleaf);
 
 for k = 1:nleaf
+    if ( ~isource(k) )
+        continue
+    end
+
     id  = leafIDs(k);
     dom = domain(:,id);
     sclx = diff(dom(1:2));
@@ -194,12 +199,14 @@ for k = 1:nleaf
     neighborIDs = leafNeighbors(:,id);
     for nid = cat(1,neighborIDs{:}).'
         kn = idToLinearIdx(nid);
-        neighbordom = domain(:,leafIDs(kn));
-        neighborlevel = level(leafIDs(kn));
-        code = computeCode(sourcedom, sourcelevel, neighbordom, neighborlevel);
-        codeToLeaf{code}(end+1) = k;
-        codeToIdx(code,k) = length(codeToLeaf{code});
-        codeToNeighbor(code,k) = kn;
+        if ( isource(kn) )
+            neighbordom = domain(:,leafIDs(kn));
+            neighborlevel = level(leafIDs(kn));
+            code = computeCode(sourcedom, sourcelevel, neighbordom, neighborlevel);
+            codeToLeaf{code}(end+1) = k;
+            codeToIdx(code,k) = length(codeToLeaf{code});
+            codeToNeighbor(code,k) = kn;
+        end
     end
 end
 
@@ -210,6 +217,10 @@ for code = 1:ncodes
 end
 
 for k = 1:nleaf
+    if ( ~isource(k) )
+        continue
+    end
+
     id = leafIDs(k);
     dom = domain(:,id);
     sclx = diff(dom(1:2));
@@ -217,7 +228,7 @@ for k = 1:nleaf
     % Correct self
     naive_u{1}(:,:,k) = naive_u{1}(:,:,k) - log(sclx)/(2*pi) * reshape(sum(tau(:,k)) - tau(:,k), n, n);
     accurate_u{1}(:,:,k) = accurate_u{1}(:,:,k) - C(1,k)*log(sclx)/(2*pi);
-    uu{k} = uu{k} + accurate_u{1}(:,:,k) - naive_u{1}(:,:,k);
+    uu(:,:,k) = uu(:,:,k) + accurate_u{1}(:,:,k) - naive_u{1}(:,:,k);
 
     % Correct neighbors
     codes = find(codeToNeighbor(:,k));
@@ -228,7 +239,7 @@ for k = 1:nleaf
         nu = nu - log(sclx)/(2*pi) * sum(tau(:,k), 'all');
         au = au - C(1,k)*log(sclx)/(2*pi);
         kn = codeToNeighbor(code,k);
-        uu{kn} = uu{kn} + au - nu;
+        uu(:,:,kn) = uu(:,:,kn) + au - nu;
     end
 end
 

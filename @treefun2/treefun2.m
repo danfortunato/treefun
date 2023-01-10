@@ -221,7 +221,7 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
 
     methods ( Static )
 
-        u = poisson(f);
+        u = poisson(f, isource);
         coeffs = vals2coeffs(vals);
         vals = coeffs2vals(coeffs);
         vals = coeffs2refvals(coeffs);
