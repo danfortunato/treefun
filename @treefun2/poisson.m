@@ -2,19 +2,22 @@ function u = poisson(f)
 
 %%% Point FMM plus local correction
 
+n = f.n;
+domain = f.domain;
+
 % Convert second-kind Chebyshev points to Legendre points on each box
 ids = leaves(f);
 xx = cell(length(ids), 1);
 yy = cell(length(ids), 1);
 ww = cell(length(ids), 1);
 ff = leafvals(f);
-[x0, w0] = legpts(f.n, [0 1]);
+[x0, w0] = legpts(n, [0 1]);
 [xx0, yy0] = meshgrid(x0);
 ww0 = w0(:) * w0(:).';
-CV2LV = chebvals2legvals(eye(f.n));
+CV2LV = chebvals2legvals(eye(n));
 for k = 1:length(ids)
     id = ids(k);
-    dom = f.domain(:,id);
+    dom = domain(:,id);
     sclx = diff(dom(1:2));
     scly = diff(dom(3:4));
     xx{k} = sclx*xx0 + dom(1);
@@ -28,8 +31,8 @@ yy_ = [yy{:}]; yy_ = yy_(:);
 ww_ = [ww{:}]; ww_ = ww_(:);
 ff_ = [ff{:}]; ff_ = ff_(:);
 
-iprec = 5;
-nsource = length(f) * f.n^2;
+iprec = 4;
+nsource = length(f) * n^2;
 source = [xx_ yy_].';
 ifcharge = 1;
 charge = -ww_.*ff_/(2*pi);
@@ -48,6 +51,7 @@ ifhesstarg = 0;
 % Call a point FMM
 % Note: This will not work if box points overlap (e.g., if we use
 % second-kind Chebyshev points)
+Timer.tic();
 out = rfmm2dpart(iprec,                    ...
                  nsource, source,          ...
                  ifcharge, charge,         ...
@@ -55,24 +59,34 @@ out = rfmm2dpart(iprec,                    ...
                  ifpot, ifgrad, ifhess,    ...
                  ntarget, target,          ...
                  ifpottarg, ifgradtarg, ifhesstarg);
+Timer.toc('FMM');
 
-uu = reshape(out.pot, f.n, f.n, length(ids));
-uu = squeeze(mat2cell(uu, f.n, f.n, ones(length(ids), 1)));
+if ( out.ier ~= 0 )
+    error('FMM exited with error code %d\n.', out.ier);
+end
+
+uu = reshape(out.pot, n, n, length(ids));
+uu = squeeze(mat2cell(uu, n, n, ones(length(ids), 1)));
 ff_cfs = cell(length(ids), 1);
-LV2LC = legvals2legcoeffs(eye(f.n));
+LV2LC = legvals2legcoeffs(eye(n));
 for k = 1:length(ids)
     ff_cfs{k} = LV2LC * ff{k} * LV2LC.';
 end
+
+Timer.tic();
 %uu = correct_close(f, uu, ff, ff_cfs, ww);
 uu = correct_close_batched(f, uu, ff, ff_cfs, ww);
+Timer.toc('Close correction');
 
 u = f;
-LV2CC = legvals2chebcoeffs(eye(f.n));
+coeffs = u.coeffs;
+LV2CC = legvals2chebcoeffs(eye(n));
 for k = 1:length(ids)
-    uu{k} = LV2CC * uu{k} * LV2CC.';
     id = ids(k);
-    u.coeffs{id} = uu{k};
+    uu{k} = LV2CC * uu{k} * LV2CC.';
+    coeffs{id} = uu{k};
 end
+u.coeffs = coeffs;
 
 end
 
@@ -81,8 +95,15 @@ function uu = correct_close(f, uu, ff, ff_cfs, ww)
 persistent naiveMats closeMats
 
 if ( isempty(naiveMats) || isempty(closeMats) )
-    load('quadrature/laplace_16.mat', 'naiveMats', 'closeMats');
+    n = size(ff{1}, 1);
+    file = sprintf([treefunroot '/quadrature/laplace_%d.mat'], n);
+    load(file, 'naiveMats', 'closeMats');
 end
+
+n = f.n;
+domain = f.domain;
+level = f.level;
+leafNeighbors = f.leafNeighbors;
 
 leafIDs = leaves(f);
 idToLinearIdx = zeros(max(leafIDs), 1);
@@ -93,7 +114,7 @@ end
 
 for k = 1:length(leafIDs)
     id  = leafIDs(k);
-    dom = f.domain(:,id);
+    dom = domain(:,id);
     sclx = diff(dom(1:2));
     scly = diff(dom(3:4));
 
@@ -101,24 +122,24 @@ for k = 1:length(leafIDs)
     C = ff_cfs{k} * sclx * scly;
 
     % Correct self
-    naive_u = reshape(naiveMats(:,:,1) * tau(:), f.n, f.n);
+    naive_u = reshape(naiveMats(:,:,1) * tau(:), n, n);
     naive_u = naive_u - log(sclx)/(2*pi) * (sum(tau, 'all') - tau);
-    accurate_u = reshape(reshape(C, [], f.n^2) * closeMats(:,:,1), f.n, f.n);
+    accurate_u = reshape(reshape(C, [], n^2) * closeMats(:,:,1), n, n);
     accurate_u = accurate_u.' - C(1,1)*log(sclx)/(2*pi);
     uu{k} = uu{k} + accurate_u - naive_u;
 
     % Correct neighbors
-    sourcedom = f.domain(:,id);
-    sourcelevel = f.level(id);
-    neighborIDs = f.leafNeighbors(:,id);
-    for nid = [neighborIDs{:}]
+    sourcedom = domain(:,id);
+    sourcelevel = level(id);
+    neighborIDs = leafNeighbors(:,id);
+    for nid = cat(1,neighborIDs{:}).'
         kn = idToLinearIdx(nid);
-        neighbordom = f.domain(:,leafIDs(kn));
-        neighborlevel = f.level(leafIDs(kn));
+        neighbordom = domain(:,leafIDs(kn));
+        neighborlevel = level(leafIDs(kn));
         code = computeCode(sourcedom, sourcelevel, neighbordom, neighborlevel);
-        naive_u = reshape(naiveMats(:,:,code) * tau(:), f.n, f.n);
+        naive_u = reshape(naiveMats(:,:,code) * tau(:), n, n);
         naive_u = naive_u - log(sclx)/(2*pi) * sum(tau, 'all');
-        accurate_u = reshape(reshape(C, [], f.n^2) * closeMats(:,:,code), f.n, f.n);
+        accurate_u = reshape(reshape(C, [], n^2) * closeMats(:,:,code), n, n);
         accurate_u = accurate_u.' - C(1,1)*log(sclx)/(2*pi);
         uu{kn} = uu{kn} + accurate_u - naive_u;
     end
@@ -129,14 +150,17 @@ end
 function uu = correct_close_batched(f, uu, ff, ff_cfs, ww)
 
 persistent naiveMats closeMats
-%naiveMats = [];
-%closeMats = [];
 
 if ( isempty(naiveMats) || isempty(closeMats) )
     n = size(ff{1}, 1);
     file = sprintf([treefunroot '/quadrature/laplace_%d.mat'], n);
     load(file, 'naiveMats', 'closeMats');
 end
+
+n = f.n;
+domain = f.domain;
+level = f.level;
+leafNeighbors = f.leafNeighbors;
 
 leafIDs = leaves(f);
 nleaf = length(leafIDs);
@@ -158,20 +182,20 @@ codeToIdx      = zeros(ncodes, nleaf);
 
 for k = 1:nleaf
     id  = leafIDs(k);
-    dom = f.domain(:,id);
+    dom = domain(:,id);
     sclx = diff(dom(1:2));
     scly = diff(dom(3:4));
 
     tau(:,k) = reshape(ff{k}.*ww{k}, [], 1);
     C(:,k) = reshape(ff_cfs{k}*sclx*scly, [], 1);
 
-    sourcedom = f.domain(:,id);
-    sourcelevel = f.level(id);
-    neighborIDs = f.leafNeighbors(:,id);
+    sourcedom = domain(:,id);
+    sourcelevel = level(id);
+    neighborIDs = leafNeighbors(:,id);
     for nid = cat(1,neighborIDs{:}).'
         kn = idToLinearIdx(nid);
-        neighbordom = f.domain(:,leafIDs(kn));
-        neighborlevel = f.level(leafIDs(kn));
+        neighbordom = domain(:,leafIDs(kn));
+        neighborlevel = level(leafIDs(kn));
         code = computeCode(sourcedom, sourcelevel, neighbordom, neighborlevel);
         codeToLeaf{code}(end+1) = k;
         codeToIdx(code,k) = length(codeToLeaf{code});
@@ -181,17 +205,17 @@ end
 
 % Do the corrections in a batch
 for code = 1:ncodes
-    naive_u{code}    = reshape(naiveMats(:,:,code) * tau(:,codeToLeaf{code}), f.n, f.n, []);
-    accurate_u{code} = reshape(closeMats(:,:,code) *   C(:,codeToLeaf{code}), f.n, f.n, []);
+    naive_u{code}    = reshape(naiveMats(:,:,code) * tau(:,codeToLeaf{code}), n, n, []);
+    accurate_u{code} = reshape(closeMats(:,:,code) *   C(:,codeToLeaf{code}), n, n, []);
 end
 
 for k = 1:nleaf
     id = leafIDs(k);
-    dom = f.domain(:,id);
+    dom = domain(:,id);
     sclx = diff(dom(1:2));
 
     % Correct self
-    naive_u{1}(:,:,k) = naive_u{1}(:,:,k) - log(sclx)/(2*pi) * reshape(sum(tau(:,k)) - tau(:,k), f.n, f.n);
+    naive_u{1}(:,:,k) = naive_u{1}(:,:,k) - log(sclx)/(2*pi) * reshape(sum(tau(:,k)) - tau(:,k), n, n);
     accurate_u{1}(:,:,k) = accurate_u{1}(:,:,k) - C(1,k)*log(sclx)/(2*pi);
     uu{k} = uu{k} + accurate_u{1}(:,:,k) - naive_u{1}(:,:,k);
 
