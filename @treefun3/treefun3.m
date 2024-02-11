@@ -215,10 +215,11 @@ zz = sclz*zz0 + dom(5); zzz = sclz*zzz0 + dom(5);
 
 vals = f(xx,yy,zz);
 coeffs = treefun3.vals2coeffs(vals);
-coeffs = coeffs(1:n,1:n);
-Ex = sum(abs(coeffs(end-1:end,:)), 'all') / (2*n);
-Ey = sum(abs(coeffs(:,end-1:end)), 'all') / (2*n);
-err_cfs = (Ex + Ey) / 2;
+coeffs = coeffs(1:n,1:n,1:n);
+Ex = sum(abs(coeffs(end-1:end,:,:)), 'all') / (2*n^2);
+Ey = sum(abs(coeffs(:,end-1:end,:)), 'all') / (2*n^2);
+Ez = sum(abs(coeffs(:,:,end-1:end)), 'all') / (2*n^2);
+err_cfs = (Ex + Ey + Ez) / 3;
 
 % F = f(xxx,yyy,zzz);
 % G = coeffs2refvals(coeffs);
