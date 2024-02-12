@@ -51,6 +51,8 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             opts = struct();
             opts.balance = false; % not yet
             opts.neighbors = false;
+            opts.tol = 1e-12;
+            opts.checkpts = [];
             
             if ( nargin == 2 )
                 if ( isa(varargin{2}, 'treefun3') ) % TREEFUN3(F, TF)
@@ -92,6 +94,12 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
                 end
                 if ( isfield(opts1, 'neighbors') )
                     opts.neighbors = opts1.neighbors;
+                end
+                if ( isfield(opts1, 'tol') )
+                    opts.tol = opts1.tol;
+                end
+                if ( isfield(opts1, 'checkpts') )
+                    opts.checkpts = opts1.checkpts;
                 end
             elseif ( nargin == 9 )
                 % TREEFUN3(DOMAIN, LEVEL, HEIGHT, ID, PARENT, CHILDREN,
@@ -138,11 +146,11 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             zz = sclz*zz0 + dom(5); 
             ww0 = wx0.*wy0.*wz0;
             vals = func(xx,yy,zz);
-            f.rint = sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, 'all'));
+            f.rint = max(sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, 'all')),1e-16); % initialze l2
             
 
             % f = buildDepthFirst(f, func);
-            f = buildBreadthFirst(f, func);
+            f = buildBreadthFirst(f, func, opts.tol, opts.checkpts);
             % f.morton = cartesian2morton(f.col, f.row);
 
             % Now do level restriction
@@ -170,7 +178,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
 
         f = refineBox(f, id);
 
-        function f = buildBreadthFirst(f, func)
+        function f = buildBreadthFirst(f, func, tol, checkpts)
 
             persistent xx0 yy0 zz0 ww0 nstored
             nalias = f.n;
@@ -188,7 +196,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             % Note: the length changes at each iteration here
             id = 1;
             while ( id <= length(f.id) )
-                [resolved, coeffs, rintvals] = isResolved(func, f.domain(:,id), f.n, f.rint);
+                [resolved, coeffs, rintvals] = isResolved(func, f.domain(:,id), f.n, tol, checkpts, f.rint);
                 if ( resolved )
                     f.coeffs{id} = coeffs;
                     f.height(id) = 0;
@@ -233,17 +241,17 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
         vals = coeffs2vals(coeffs);
         % vals = coeffs2refvals(coeffs);
         % refvals = chebvals2refvals(chebvals);
+        checkvals = coeffs2checkvals(coeffs,x,y,z);
 
     end
     
 
 end
 
-function [resolved, coeffs, rintvals] = isResolved(f, dom, n, rint)
+function [resolved, coeffs, rintvals] = isResolved(f, dom, n, tol, checkpts, rint)
 
 persistent xx0 yy0 zz0 ww0 xxx0 yyy0 zzz0 nstored
 
-tol = 1e-12;
 nalias = n;
 nrefpts = 2*n; % Sample at equispaced points to test error
 
@@ -269,6 +277,10 @@ vals = f(xx,yy,zz);
 rintvals = sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, 'all'));
 coeffs = treefun3.vals2coeffs(vals);
 coeffs = coeffs(1:n,1:n,1:n);
+h = sclx;
+eta = 0;
+
+vmax = max(abs(vals(:)));
 
 if 0
   Ex = sum(abs(coeffs(end-1:end,:,:)), 'all') / (3*n^2);
@@ -282,14 +294,31 @@ if 0
   
   err = err_cfs;
   %err = min(err_cfs, err_vals);
-  h = sclx;
-  eta = 0;
   
-  vmax = max(abs(vals(:)));
   resolved = ( err * h^eta < tol * max(vmax, 1) );
 else
   erra = sqrt(sum(coeffs.^2, 'all') - sum(coeffs(1:end-2,1:end-2,1:end-2).^2, 'all')) / (n^3 - (n-2)^3);
   resolved = ( erra < tol* sqrt(1/(sclx*scly*sclz)) * rint );
+end
+
+if ( ~isempty(checkpts) ) % check if func values @ checkpts agree
+  % func = @(x,y,z) exp(-(x.^2+y.^2+z.^2)*5000000) + exp(-((x-1/2).^2+(y-1/3).^2+(z-3/5).^2)*1000000) + exp(-((x+1/2).^2+(y+1/3).^2+(z+3/5).^2)*2000000);
+  % f = treefun3(func,[-2 2 -2 2 -2 2],10,struct('checkpts',[0 1/2 -1/2;0 1/3 -1/3;0 3/5 -3/5])); vs f = treefun3(func,[-2 2 -2 2 -2 2],10);
+  % plot(f,func)
+  % for later, reduce checkpts if resolved
+  xxx = 2 * ((checkpts(1,:)' - dom(1))/sclx) - 1;
+  yyy = 2 * ((checkpts(2,:)' - dom(3))/sclx) - 1;
+  zzz = 2 * ((checkpts(3,:)' - dom(5))/sclx) - 1;
+  in = ( xxx>=-1 & xxx<=1 & ...
+         yyy>=-1 & yyy<=1 & ...
+         zzz>=-1 & zzz<=1);
+  if ( any(in) )
+    F = f(checkpts(1,in),checkpts(2,in),checkpts(3,in));
+    G = treefun3.coeffs2checkvals(coeffs,xxx(in),yyy(in),zzz(in));
+    err_checkvals = max(abs(F(:) - G(:)));
+    resolved = resolved && ( err_checkvals * h^eta < tol * max(vmax, 1) );
+  end
+  
 end
 
 end
