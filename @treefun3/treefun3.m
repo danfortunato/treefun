@@ -35,6 +35,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
         morton
         flatNeighbors
         leafNeighbors
+        rint
 
     end
 
@@ -120,7 +121,26 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             f.coeffs{1}     = [];
             f.col           = uint64(0);
             f.row           = uint64(0);
+
+            %%% rint %%%
+            nalias = f.n;
+            x0 = (1-cos(pi*(2*(1:nalias)'-1)/(2*nalias)))/2;
+            [xx0, yy0, zz0] = ndgrid(x0);
+            l = floor(nalias/2)+1;
+            v = [2*exp(1i*pi*(0:nalias-l)/nalias)./(1-4*(0:nalias-l).^2)  zeros(1,l)];
+            w0 = real(ifft(v(1:nalias) + conj(v(nalias+1:-1:2))))'/2;
+            [wx0, wy0, wz0] = ndgrid(w0); 
+            sclx = diff(dom(1:2));
+            scly = diff(dom(3:4));
+            sclz = diff(dom(5:6));
+            xx = sclx*xx0 + dom(1); 
+            yy = scly*yy0 + dom(3); 
+            zz = sclz*zz0 + dom(5); 
+            ww0 = wx0.*wy0.*wz0;
+            vals = func(xx,yy,zz);
+            f.rint = sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, 'all'));
             
+
             % f = buildDepthFirst(f, func);
             f = buildBreadthFirst(f, func);
             % f.morton = cartesian2morton(f.col, f.row);
@@ -152,17 +172,44 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
 
         function f = buildBreadthFirst(f, func)
 
+            persistent xx0 yy0 zz0 ww0 nstored
+            nalias = f.n;
+            if ( isempty(xx0) || f.n ~= nstored )
+                nstored = f.n;
+                x0 = (1-cos(pi*(2*(1:nalias)'-1)/(2*nalias)))/2;
+                [xx0, yy0, zz0] = ndgrid(x0);
+                l = floor(nalias/2)+1;
+                v = [2*exp(1i*pi*(0:nalias-l)/nalias)./(1-4*(0:nalias-l).^2)  zeros(1,l)];
+                w0 = real(ifft(v(1:nalias) + conj(v(nalias+1:-1:2))))'/2;
+                [wx0, wy0, wz0] = ndgrid(w0); 
+                ww0 = wx0.*wy0.*wz0;
+            end
+
             % Note: the length changes at each iteration here
             id = 1;
             while ( id <= length(f.id) )
-                [resolved, coeffs] = isResolved(func, f.domain(:,id), f.n);
+                [resolved, coeffs, rintvals] = isResolved(func, f.domain(:,id), f.n, f.rint);
                 if ( resolved )
                     f.coeffs{id} = coeffs;
                     f.height(id) = 0;
                 else
-                    % Split into four child boxes
+                    % Split into eight child boxes
                     f = refineBox(f, id);
                     f.height(id) = 1;
+                    % whenever split, update rint to be more accurate ...
+                    % (f.rint)^2 - (rintvals)^2 + eight child (rintvals)^2
+                    r8intvals = 0;
+                    for k = 1:8
+                      dom = f.domain(:,f.children(k,id));
+                      sclx = diff(dom(1:2));
+                      scly = diff(dom(3:4));
+                      sclz = diff(dom(5:6));
+                      xx = sclx*xx0 + dom(1); 
+                      yy = scly*yy0 + dom(3); 
+                      zz = sclz*zz0 + dom(5); 
+                      r8intvals = r8intvals + (sclx*scly*sclz)*sum(func(xx,yy,zz).^2.*ww0, 'all');
+                    end
+                    f.rint = sqrt(f.rint^2 - rintvals^2 + r8intvals);
                 end
                 id = id + 1;
             end
@@ -192,9 +239,9 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
 
 end
 
-function [resolved, coeffs] = isResolved(f, dom, n)
+function [resolved, coeffs, rintvals] = isResolved(f, dom, n, rint)
 
-persistent xx0 yy0 zz0 xxx0 yyy0 zzz0 nstored
+persistent xx0 yy0 zz0 ww0 xxx0 yyy0 zzz0 nstored
 
 tol = 1e-12;
 nalias = n;
@@ -205,6 +252,11 @@ if ( isempty(xx0) || isempty(xxx0) || n ~= nstored )
     x0 = (1-cos(pi*(2*(1:nalias)'-1)/(2*nalias)))/2;
     [xx0, yy0, zz0] = ndgrid(x0);
     [xxx0, yyy0, zzz0] = ndgrid(linspace(0, 1, nrefpts));
+    l = floor(nalias/2)+1;
+    v = [2*exp(1i*pi*(0:nalias-l)/nalias)./(1-4*(0:nalias-l).^2)  zeros(1,l)];
+    w0 = real(ifft(v(1:nalias) + conj(v(nalias+1:-1:2))))'/2;
+    [wx0, wy0, wz0] = ndgrid(w0); 
+    ww0 = wx0.*wy0.*wz0;
 end
 sclx = diff(dom(1:2));
 scly = diff(dom(3:4));
@@ -214,23 +266,30 @@ yy = scly*yy0 + dom(3); yyy = scly*yyy0 + dom(3);
 zz = sclz*zz0 + dom(5); zzz = sclz*zzz0 + dom(5);
 
 vals = f(xx,yy,zz);
+rintvals = sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, 'all'));
 coeffs = treefun3.vals2coeffs(vals);
 coeffs = coeffs(1:n,1:n,1:n);
-Ex = sum(abs(coeffs(end-1:end,:,:)), 'all') / (2*n^2);
-Ey = sum(abs(coeffs(:,end-1:end,:)), 'all') / (2*n^2);
-Ez = sum(abs(coeffs(:,:,end-1:end)), 'all') / (2*n^2);
-err_cfs = (Ex + Ey + Ez) / 3;
 
-% F = f(xxx,yyy,zzz);
-% G = coeffs2refvals(coeffs);
-% err_vals = max(abs(F(:) - G(:)));
-
-err = err_cfs;
-%err = min(err_cfs, err_vals);
-h = sclx;
-eta = 0;
-
-vmax = max(abs(vals(:)));
-resolved = ( err * h^eta < tol * max(vmax, 1) );
+if 0
+  Ex = sum(abs(coeffs(end-1:end,:,:)), 'all') / (3*n^2);
+  Ey = sum(abs(coeffs(:,end-1:end,:)), 'all') / (3*n^2);
+  Ez = sum(abs(coeffs(:,:,end-1:end)), 'all') / (3*n^2);
+  err_cfs = (Ex + Ey + Ez) / 3;
+  
+  % F = f(xxx,yyy,zzz);
+  % G = coeffs2refvals(coeffs);
+  % err_vals = max(abs(F(:) - G(:)));
+  
+  err = err_cfs;
+  %err = min(err_cfs, err_vals);
+  h = sclx;
+  eta = 0;
+  
+  vmax = max(abs(vals(:)));
+  resolved = ( err * h^eta < tol * max(vmax, 1) );
+else
+  erra = sqrt(sum(coeffs.^2, 'all') - sum(coeffs(1:end-2,1:end-2,1:end-2).^2, 'all')) / (n^3 - (n-2)^3);
+  resolved = ( erra < tol* sqrt(1/(sclx*scly*sclz)) * rint );
+end
 
 end
