@@ -36,6 +36,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
         flatNeighbors
         leafNeighbors
         rint
+        vmax
 
     end
 
@@ -120,17 +121,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
                 func = @(x,y) feval(func, x, y);
             end
 
-            f.domain(:,1)   = dom(:);
-            f.level(1)      = 0;
-            f.height(1)     = 0;
-            f.id(1)         = 1;
-            f.parent(1)     = 0;
-            f.children(:,1) = zeros(8, 1);
-            f.coeffs{1}     = [];
-            f.col           = uint64(0);
-            f.row           = uint64(0);
-
-            %%% rint %%%
+            % initialize vals, rint, coeffs... wrap this up?
             nalias = f.n;
             x0 = (1-cos(pi*(2*(1:nalias)'-1)/(2*nalias)))/2;
             [xx0, yy0, zz0] = ndgrid(x0);
@@ -146,7 +137,22 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             zz = sclz*zz0 + dom(5); 
             ww0 = wx0.*wy0.*wz0;
             vals = func(xx,yy,zz);
-            f.rint = max(sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, 'all')),1e-16); % initialze l2
+            coeffs = treefun3.vals2coeffs(vals);
+            rint = max(sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, 'all')),1e-16); % initialze l2
+            
+            % 
+            f.domain(:,1)   = dom(:);
+            f.level(1)      = 0;
+            f.height(1)     = 0;
+            f.id(1)         = 1;
+            f.parent(1)     = 0;
+            f.children(:,1) = zeros(8, 1);
+            f.coeffs{1}     = [];
+            f.col           = uint64(0);
+            f.row           = uint64(0);
+            f.coeffs{1}     = coeffs(1:f.n,1:f.n,1:f.n); 
+            f.rint(1)       = rint;
+            f.vmax(1)       = max(abs(vals(:)));
             
 
             % f = buildDepthFirst(f, func);
@@ -176,48 +182,23 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
 
     methods ( Access = private )
 
-        f = refineBox(f, id);
+        f = refineBox(f, id, func);
 
         function f = buildBreadthFirst(f, func, tol, checkpts)
 
-            persistent xx0 yy0 zz0 ww0 nstored
-            nalias = f.n;
-            if ( isempty(xx0) || f.n ~= nstored )
-                nstored = f.n;
-                x0 = (1-cos(pi*(2*(1:nalias)'-1)/(2*nalias)))/2;
-                [xx0, yy0, zz0] = ndgrid(x0);
-                l = floor(nalias/2)+1;
-                v = [2*exp(1i*pi*(0:nalias-l)/nalias)./(1-4*(0:nalias-l).^2)  zeros(1,l)];
-                w0 = real(ifft(v(1:nalias) + conj(v(nalias+1:-1:2))))'/2;
-                [wx0, wy0, wz0] = ndgrid(w0); 
-                ww0 = wx0.*wy0.*wz0;
-            end
-
             % Note: the length changes at each iteration here
             id = 1;
+            rint = f.rint(1);
             while ( id <= length(f.id) )
-                [resolved, coeffs, rintvals] = isResolved(func, f.domain(:,id), f.n, tol, checkpts, f.rint);
+                resolved = isResolved(f.coeffs{id}, f.domain(:,id), f.n, tol, f.vmax(id), func, checkpts, rint);
                 if ( resolved )
-                    f.coeffs{id} = coeffs;
                     f.height(id) = 0;
                 else
                     % Split into eight child boxes
-                    f = refineBox(f, id);
+                    f = refineBox(f, id, func);
                     f.height(id) = 1;
-                    % whenever split, update rint to be more accurate ...
-                    % (f.rint)^2 - (rintvals)^2 + eight child (rintvals)^2
-                    r8intvals = 0;
-                    for k = 1:8
-                      dom = f.domain(:,f.children(k,id));
-                      sclx = diff(dom(1:2));
-                      scly = diff(dom(3:4));
-                      sclz = diff(dom(5:6));
-                      xx = sclx*xx0 + dom(1); 
-                      yy = scly*yy0 + dom(3); 
-                      zz = sclz*zz0 + dom(5); 
-                      r8intvals = r8intvals + (sclx*scly*sclz)*sum(func(xx,yy,zz).^2.*ww0, 'all');
-                    end
-                    f.rint = sqrt(f.rint^2 - rintvals^2 + r8intvals);
+                    f.coeffs{id} = []; % delete coeffs
+                    rint = sqrt(rint^2 - f.rint(id)^2 + sum(f.rint(end-7:end).^2)); % whenever split, update rint to be more accurate ...
                 end
                 id = id + 1;
             end
@@ -248,41 +229,29 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
 
 end
 
-function [resolved, coeffs, rintvals] = isResolved(f, dom, n, tol, checkpts, rint)
+function resolved = isResolved(coeffs, dom, n, tol, vmax, f, checkpts, rint)
+% need f if checkpts
 
-persistent xx0 yy0 zz0 ww0 xxx0 yyy0 zzz0 nstored
+persistent xxx0 yyy0 zzz0 nstored
 
-nalias = n;
+% nalias = n;
 nrefpts = 2*n; % Sample at equispaced points to test error
 
-if ( isempty(xx0) || isempty(xxx0) || n ~= nstored )
+if ( isempty(xxx0) || n ~= nstored )
     nstored = n;
-    x0 = (1-cos(pi*(2*(1:nalias)'-1)/(2*nalias)))/2;
-    [xx0, yy0, zz0] = ndgrid(x0);
     [xxx0, yyy0, zzz0] = ndgrid(linspace(0, 1, nrefpts));
-    l = floor(nalias/2)+1;
-    v = [2*exp(1i*pi*(0:nalias-l)/nalias)./(1-4*(0:nalias-l).^2)  zeros(1,l)];
-    w0 = real(ifft(v(1:nalias) + conj(v(nalias+1:-1:2))))'/2;
-    [wx0, wy0, wz0] = ndgrid(w0); 
-    ww0 = wx0.*wy0.*wz0;
 end
+
 sclx = diff(dom(1:2));
 scly = diff(dom(3:4));
 sclz = diff(dom(5:6));
-xx = sclx*xx0 + dom(1); xxx = sclx*xxx0 + dom(1);
-yy = scly*yy0 + dom(3); yyy = scly*yyy0 + dom(3);
-zz = sclz*zz0 + dom(5); zzz = sclz*zzz0 + dom(5);
 
-vals = f(xx,yy,zz);
-rintvals = sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, 'all'));
-coeffs = treefun3.vals2coeffs(vals);
-coeffs = coeffs(1:n,1:n,1:n);
 h = sclx;
 eta = 0;
 
-vmax = max(abs(vals(:)));
+if 0 % did not check
+  vmax = max(abs(vals(:))); % if needed, compute and store when refineBox
 
-if 0
   Ex = sum(abs(coeffs(end-1:end,:,:)), 'all') / (3*n^2);
   Ey = sum(abs(coeffs(:,end-1:end,:)), 'all') / (3*n^2);
   Ez = sum(abs(coeffs(:,:,end-1:end)), 'all') / (3*n^2);
@@ -307,8 +276,8 @@ if ( ~isempty(checkpts) ) % check if func values @ checkpts agree
   % plot(f,func)
   % for later, reduce checkpts if resolved
   xxx = 2 * ((checkpts(1,:)' - dom(1))/sclx) - 1;
-  yyy = 2 * ((checkpts(2,:)' - dom(3))/sclx) - 1;
-  zzz = 2 * ((checkpts(3,:)' - dom(5))/sclx) - 1;
+  yyy = 2 * ((checkpts(2,:)' - dom(3))/scly) - 1;
+  zzz = 2 * ((checkpts(3,:)' - dom(5))/sclz) - 1;
   in = ( xxx>=-1 & xxx<=1 & ...
          yyy>=-1 & yyy<=1 & ...
          zzz>=-1 & zzz<=1);
@@ -322,3 +291,4 @@ if ( ~isempty(checkpts) ) % check if func values @ checkpts agree
 end
 
 end
+
