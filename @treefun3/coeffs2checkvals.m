@@ -3,7 +3,7 @@ function vals = coeffs2checkvals(coeffs,x,y,z)
 %
 
 persistent Evalx Evaly Evalz
-p = size(coeffs, 1);
+[p,~,~,nd] = size(coeffs);
 ncheckpts = numel(x); % hopefully not too large...
 
 Evalx = ones(ncheckpts, p);
@@ -18,11 +18,11 @@ for k=3:p
   Evalz(:,k) = 2*z(:).*Evalz(:,k-1)-Evalz(:,k-2);
 end
 % coeffs to value map
-vals = zeros(ncheckpts,1);
+vals = zeros(nd,ncheckpts);
 for k=1:ncheckpts
-  tmp1 = permute(tensorprod(Evalx(k,:),coeffs,2,1),[2 3 1]);
-  tmp2 = permute(tensorprod(Evaly(k,:),tmp1,2,1),[2 3 1]);
-  vals(k) = permute(tensorprod(Evalz(k,:),tmp2,2,1),[2 3 1]);
+  tmp1 = permute(tensorprod(Evalx(k,:),coeffs,2,1),[2 3 1 4]);
+  tmp2 = permute(tensorprod(Evaly(k,:),tmp1,2,1),[2 3 1 4]);
+  vals(:,k) = squeeze(permute(tensorprod(Evalz(k,:),tmp2,2,1),[2 3 1 4]));
 end
 
 end

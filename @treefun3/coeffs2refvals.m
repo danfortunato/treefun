@@ -3,7 +3,7 @@ function vals = coeffs2refvals(coeffs)
 %
 
 persistent Eval pstored
-p = size(coeffs, 1);
+[p,~,~,nd] = size(coeffs);
 nrefpts = 2*p;
 
 if ( isempty(Eval) || p ~= pstored )
@@ -16,8 +16,8 @@ if ( isempty(Eval) || p ~= pstored )
     end
 end
 
-tmp1 = permute(tensorprod(Eval,coeffs,2,1),[2 3 1]);
-tmp2 = permute(tensorprod(Eval,tmp1,2,1),[2 3 1]);
-vals = permute(tensorprod(Eval,tmp2,2,1),[2 3 1]);
+tmp1 = permute(tensorprod(Eval,coeffs,2,1),[2 3 1 4]);
+tmp2 = permute(tensorprod(Eval,tmp1,2,1),[2 3 1 4]);
+vals = squeeze(permute(tensorprod(Eval,tmp2,2,1),[2 3 1 4]));
 
 end

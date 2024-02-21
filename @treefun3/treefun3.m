@@ -136,9 +136,10 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             yy = scly*yy0 + dom(3); 
             zz = sclz*zz0 + dom(5); 
             ww0 = wx0.*wy0.*wz0;
-            vals = func(xx,yy,zz);
+            vals = func(xx(:),yy(:),zz(:));
+            vals = reshape(vals,[nalias nalias nalias size(vals,2)]); % additional for nd
             coeffs = treefun3.vals2coeffs(vals);
-            rint = max(sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, 'all')),1e-16); % initialze l2
+            rint = max(squeeze(sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, [1 2 3]))),1e-16); % initialze l2
             
             % 
             f.domain(:,1)   = dom(:);
@@ -151,8 +152,8 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             f.col           = uint64(0);
             f.row           = uint64(0);
             f.coeffs{1}     = coeffs(1:f.n,1:f.n,1:f.n); 
-            f.rint(1)       = rint;
-            f.vmax(1)       = max(abs(vals(:)));
+            f.rint(:,1)     = rint;
+            f.vmax(:,1)     = squeeze(max(abs(vals),[],[1 2 3]));
             
 
             % f = buildDepthFirst(f, func);
@@ -188,9 +189,9 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
 
             % Note: the length changes at each iteration here
             id = 1;
-            rint = f.rint(1);
+            rint = f.rint(:,1);
             while ( id <= length(f.id) )
-                resolved = isResolved(f.coeffs{id}, f.domain(:,id), f.n, tol, f.vmax(id), func, checkpts, rint);
+                resolved = isResolved(f.coeffs{id}, f.domain(:,id), f.n, tol, f.vmax(:,id), func, checkpts, rint);
                 if ( resolved )
                     f.height(id) = 0;
                 else
@@ -198,7 +199,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
                     f = refineBox(f, id, func);
                     f.height(id) = 1;
                     f.coeffs{id} = []; % delete coeffs
-                    rint = sqrt(rint^2 - f.rint(id)^2 + sum(f.rint(end-7:end).^2)); % whenever split, update rint to be more accurate ...
+                    rint = sqrt(rint.^2 - f.rint(:,id).^2 + sum(f.rint(:,end-7:end).^2,2)); % whenever split, update rint to be more accurate ...
                 end
                 id = id + 1;
             end
@@ -248,6 +249,7 @@ sclz = diff(dom(5:6));
 
 h = sclx;
 eta = 0;
+[~,~,~,nd] = size(coeffs); % or rint...
 
 if 0 % did not check
   vmax = max(abs(vals(:))); % if needed, compute and store when refineBox
@@ -266,10 +268,13 @@ if 0 % did not check
   
   resolved = ( err * h^eta < tol * max(vmax, 1) );
 else
-  erra = sqrt(  sum(coeffs(end-1:end,:,:).^2,'all') ...
-              + sum(coeffs(1:end-2,end-1:end,:).^2,'all') ...
-              + sum(coeffs(1:end-2,1:end-2,end-1:end).^2,'all')) / (n^3 - (n-2)^3);
-  resolved = ( erra < tol* sqrt(1/(sclx*scly*sclz)) * rint );
+  resolved = 1;
+  for k = 1:nd
+    erra = sqrt(  sum(coeffs(end-1:end,:,:,k).^2,'all') ...
+                + sum(coeffs(1:end-2,end-1:end,:,k).^2,'all') ...
+                + sum(coeffs(1:end-2,1:end-2,end-1:end,k).^2,'all')) / (n^3 - (n-2)^3);
+    resolved = resolved && ( erra < tol* sqrt(1/(sclx*scly*sclz)) * rint(k) );
+  end
 end
 
 if ( ~isempty(checkpts) ) % check if func values @ checkpts agree
@@ -284,12 +289,13 @@ if ( ~isempty(checkpts) ) % check if func values @ checkpts agree
          yyy>=-1 & yyy<=1 & ...
          zzz>=-1 & zzz<=1);
   if ( any(in) )
-    F = f(checkpts(1,in),checkpts(2,in),checkpts(3,in));
+    F = f(checkpts(1,in)',checkpts(2,in)',checkpts(3,in)')'; % nd x n checkpts
     G = treefun3.coeffs2checkvals(coeffs,xxx(in),yyy(in),zzz(in));
-    err_checkvals = max(abs(F(:) - G(:)));
-    resolved = resolved && ( err_checkvals * h^eta < tol * max(vmax, 1) );
+    err_checkvals = max(abs(F - G),[],2);
+    for k = 1:nd
+      resolved = resolved && ( err_checkvals(k) * h^eta < tol * max(vmax(k), 1) );
+    end
   end
-  
 end
 
 end
