@@ -266,7 +266,9 @@ if 0 % did not check
   
   resolved = ( err * h^eta < tol * max(vmax, 1) );
 else
-  erra = sqrt(sum(coeffs.^2, 'all') - sum(coeffs(1:end-2,1:end-2,1:end-2).^2, 'all')) / (n^3 - (n-2)^3);
+  erra = sqrt(  sum(coeffs(end-1:end,:,:).^2,'all') ...
+              + sum(coeffs(1:end-2,end-1:end,:).^2,'all') ...
+              + sum(coeffs(1:end-2,1:end-2,end-1:end).^2,'all')) / (n^3 - (n-2)^3);
   resolved = ( erra < tol* sqrt(1/(sclx*scly*sclz)) * rint );
 end
 
