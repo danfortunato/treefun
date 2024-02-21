@@ -28,8 +28,11 @@ handles = guihandles(h);
                         linspace(f.domain(3), f.domain(4), nplotpts), ...
                         linspace(f.domain(5), f.domain(6), nplotpts));
 % v = func( xx, yy, zz);
-vtmp = func( xx(:), yy(:), zz(:));
-v = reshape(vtmp(:,1),[nplotpts nplotpts nplotpts]);
+nd = numel(func);
+v = zeros(size(xx));
+for k = 1:nd
+  v = v + func{k}(xx,yy,zz);
+end
 if isreal(v)
     [row,col,tube] = ind2sub(size(v), find(v(:) == max(v(:)), 1, 'last'));
 else

@@ -123,6 +123,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
 
             % initialize vals, rint, coeffs... wrap this up?
             nalias = f.n;
+            nd = numel(func);
             x0 = (1-cos(pi*(2*(1:nalias)'-1)/(2*nalias)))/2;
             [xx0, yy0, zz0] = ndgrid(x0);
             l = floor(nalias/2)+1;
@@ -136,8 +137,11 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             yy = scly*yy0 + dom(3); 
             zz = sclz*zz0 + dom(5); 
             ww0 = wx0.*wy0.*wz0;
-            vals = func(xx(:),yy(:),zz(:));
-            vals = reshape(vals,[nalias nalias nalias size(vals,2)]); % additional for nd
+            vals = cell(1,nd);
+            for k = 1:nd
+              vals{k} = func{k}(xx,yy,zz);
+            end
+            vals = cat(4,vals{:});
             coeffs = treefun3.vals2coeffs(vals);
             rint = max(squeeze(sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, [1 2 3]))),1e-16); % initialze l2
             
@@ -151,7 +155,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             f.coeffs{1}     = [];
             f.col           = uint64(0);
             f.row           = uint64(0);
-            f.coeffs{1}     = coeffs(1:f.n,1:f.n,1:f.n); 
+            f.coeffs{1}     = coeffs(1:f.n,1:f.n,1:f.n,:); 
             f.rint(:,1)     = rint;
             f.vmax(:,1)     = squeeze(max(abs(vals),[],[1 2 3]));
             
@@ -289,7 +293,10 @@ if ( ~isempty(checkpts) ) % check if func values @ checkpts agree
          yyy>=-1 & yyy<=1 & ...
          zzz>=-1 & zzz<=1);
   if ( any(in) )
-    F = f(checkpts(1,in)',checkpts(2,in)',checkpts(3,in)')'; % nd x n checkpts
+    F = zeros(nd,sum(in));
+    for k = 1:nd
+      F(k,:) = f{k}(checkpts(1,in)',checkpts(2,in)',checkpts(3,in)')'; % nd x n checkpts
+    end
     G = treefun3.coeffs2checkvals(coeffs,xxx(in),yyy(in),zzz(in));
     err_checkvals = max(abs(F - G),[],2);
     for k = 1:nd
