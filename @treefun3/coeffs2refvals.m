@@ -4,7 +4,7 @@ function vals = coeffs2refvals(coeffs)
 
 persistent Eval pstored
 [p,~,~,nd] = size(coeffs);
-nrefpts = 2*p;
+nrefpts = p;
 
 if ( isempty(Eval) || p ~= pstored )
     pstored = p;
