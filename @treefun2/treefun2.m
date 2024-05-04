@@ -141,6 +141,7 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
             % Now do level restriction
             if ( opts.balance )
                 f = balance(f);
+                % f = balancef(f);
             else
                 % Do a cumulative sum in reverse to correct the heights
                 for k = length(f.id):-1:1
@@ -228,6 +229,7 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
         vals = coeffs2vals(coeffs);
         vals = coeffs2refvals(coeffs);
         refvals = chebvals2refvals(chebvals);
+        checkvals = coeffs2checkvals(coeffs,x,y);
 
     end
 
