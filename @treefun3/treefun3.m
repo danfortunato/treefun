@@ -32,6 +32,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
         coeffs
         col
         row
+        dep
         morton
         flatNeighbors
         leafNeighbors
@@ -163,10 +164,12 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             f.coeffs{1}     = [];
             f.col           = uint64(0);
             f.row           = uint64(0);
+            f.dep           = uint64(0); % is this the correct generalization?
             f.coeffs{1}     = coeffs(1:f.n,1:f.n,1:f.n,:); 
             f.rint0(:,1)    = zeros(nd,1); 
             f.rint(:,1)     = rint;
             f.vmax(:,1)     = squeeze(max(abs(vals),[],[1 2 3]));
+            
             
 
             % f = buildDepthFirst(f, func);
@@ -176,7 +179,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             % Now do level restriction
             opts.balance = false;
             if ( opts.balance )
-                f = balance(f);
+                f = balancef(f);
             else
                 % Do a cumulative sum in reverse to correct the heights
                 for k = length(f.id):-1:1
@@ -227,9 +230,12 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
               parentc = zeros(1,8*refinecnt);
               idc     = zeros(1,8*refinecnt);
               levelc  = zeros(1,8*refinecnt);
+              colc    = uint64(zeros(1,8*refinecnt));
+              rowc    = uint64(zeros(1,8*refinecnt));
+              depc    = uint64(zeros(1,8*refinecnt));
               for k = 1:refinecnt % 1 by 1
                 id = idl(k);
-                [domck,coeffsck,rintck,vmaxck] = refineBoxv2(f.domain(:,id), f.n, func); % just refine the box...
+                [domck,coeffsck,rintck,vmaxck,colck,rowck,depck] = refineBoxv2(f.domain(:,id), f.n, func, f.col(id), f.row(id), f.dep(id)); % just refine the box...
                 f.children(:,id) = idl_start+8*(k-1)+(1:8); % start to know 
                 f.height(id)     = 1;
                 % 1 to 8
@@ -241,6 +247,9 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
                 parentc(cidx)    = id*ones(1,8); % these children's parent id
                 idc(cidx)        = idl_start+8*(k-1)+(1:8); % children self id
                 levelc(cidx)     = (f.level(id)+1)*ones(1,8);
+                colc(cidx)       = colck;
+                rowc(cidx)       = rowck;
+                depc(cidx)       = depck;
               end
               childrenc  = zeros(8,8*refinecnt); % don't know yet, a bunch of 0s to be concatenate to the end of f.children, will know when next level
               heightc    = zeros(1,8*refinecnt); % tmp leaf box
@@ -254,6 +263,9 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
               f.level    = cat(2,f.level,levelc);
               f.children = cat(2,f.children,childrenc);
               f.height   = cat(2,f.height,heightc);
+              f.col      = cat(2,f.col,colc);
+              f.row      = cat(2,f.row,rowc);
+              f.dep      = cat(2,f.dep,depc);
             
               % update rint, - num of idl parents contribution + 8*num of idl children contribution
               rint = sqrt(rint.^2 - sum(f.rint(:,idl).^2,2) + sum(f.rint(:,(idl_start+1):(idl_start+8*refinecnt)).^2,2)); 
@@ -420,7 +432,7 @@ end
 end
 
 
-function [domain,coeffs,rint,vmax] = refineBoxv2(dom, n, func)
+function [domain,coeffs,rint,vmax,ccol,crow,cdep] = refineBoxv2(dom, n, func, col, row, dep)
 
 % if nargin==0, test_refineBox3dv2; return; end
 
@@ -447,6 +459,12 @@ domain = zeros(6,8);
 coeffs = cell(1,8);
 nd = numel(func);
 
+% morton related
+ccol = uint64(zeros(1,8));
+crow = uint64(zeros(1,8));
+cdep = uint64(zeros(1,8));
+
+
 cdom1              = [dom(1) xmid dom(3) ymid dom(5) zmid];
 csclx1             = diff(cdom1(1:2));
 cscly1             = diff(cdom1(3:4));
@@ -460,8 +478,9 @@ for k = 1:nd
 end
 cvals1             = cat(4,cvals1{:});
 ccoeffs1           = treefun3.vals2coeffs(cvals1);
-% f.col(cid1)        = 2*f.col(id);
-% f.row(cid1)        = 2*f.row(id);
+ccol(1)            = 2*col;
+crow(1)            = 2*row;
+cdep(1)            = 2*dep;
 % f.morton(cid1)     = cartesian2morton(f.col(cid1), f.row(cid1));
 domain(:,1)        = cdom1;
 coeffs{1}          = ccoeffs1(1:n,1:n,1:n,:); % to replace f.coeffs{cid1} = [];
@@ -479,8 +498,9 @@ for k = 1:nd
 end
 cvals2             = cat(4,cvals2{:});
 ccoeffs2           = treefun3.vals2coeffs(cvals2);
-% f.col(cid2)        = 2*f.col(id) + 1;
-% f.row(cid2)        = 2*f.row(id);
+ccol(2)            = 2*col + 1;
+crow(2)            = 2*row;
+cdep(2)            = 2*dep;
 % f.morton(cid2)     = cartesian2morton(f.col(cid2), f.row(cid2)); 
 domain(:,2)        = cdom2;
 coeffs{2}          = ccoeffs2(1:n,1:n,1:n,:); 
@@ -498,8 +518,9 @@ for k = 1:nd
 end
 cvals3             = cat(4,cvals3{:});
 ccoeffs3           = treefun3.vals2coeffs(cvals3);
-% f.col(cid3)        = 2*f.col(id);
-% f.row(cid3)        = 2*f.row(id) + 1;
+ccol(3)            = 2*col;
+crow(3)            = 2*row + 1;
+cdep(3)            = 2*dep;
 % f.morton(cid3)     = cartesian2morton(f.col(cid3), f.row(cid3));
 domain(:,3)        = cdom3;
 coeffs{3}          = ccoeffs3(1:n,1:n,1:n,:); 
@@ -517,8 +538,9 @@ for k = 1:nd
 end
 cvals4             = cat(4,cvals4{:});
 ccoeffs4           = treefun3.vals2coeffs(cvals4);
-% f.col(cid4)        = 2*f.col(id) + 1;
-% f.row(cid4)        = 2*f.row(id) + 1;
+ccol(4)            = 2*col + 1;
+crow(4)            = 2*row + 1;
+cdep(4)            = 2*dep;
 % f.morton(cid4)     = cartesian2morton(f.col(cid4), f.row(cid4));
 domain(:,4)        = cdom4;
 coeffs{4}          = ccoeffs4(1:n,1:n,1:n,:); 
@@ -536,6 +558,10 @@ for k = 1:nd
 end
 cvals5             = cat(4,cvals5{:});
 ccoeffs5           = treefun3.vals2coeffs(cvals5);
+ccol(5)            = 2*col;
+crow(5)            = 2*row;
+cdep(5)            = 2*dep + 1;
+%        
 domain(:,5)        = cdom5;
 coeffs{5}          = ccoeffs5(1:n,1:n,1:n,:); 
 
@@ -552,6 +578,10 @@ for k = 1:nd
 end
 cvals6             = cat(4,cvals6{:});
 ccoeffs6           = treefun3.vals2coeffs(cvals6);
+ccol(6)            = 2*col + 1;
+crow(6)            = 2*row;
+cdep(6)            = 2*dep + 1;
+%
 domain(:,6)        = cdom6;
 coeffs{6}          = ccoeffs6(1:n,1:n,1:n,:); 
 
@@ -568,6 +598,10 @@ for k = 1:nd
 end
 cvals7             = cat(4,cvals7{:});
 ccoeffs7           = treefun3.vals2coeffs(cvals7);
+ccol(7)            = 2*col;
+crow(7)            = 2*row + 1;
+cdep(7)            = 2*dep + 1;
+%        
 domain(:,7)        = cdom7;
 coeffs{7}          = ccoeffs7(1:n,1:n,1:n,:); 
 
@@ -584,6 +618,9 @@ for k = 1:nd
 end
 cvals8             = cat(4,cvals8{:});
 ccoeffs8           = treefun3.vals2coeffs(cvals8);
+ccol(8)            = 2*col + 1;
+crow(8)            = 2*row + 1;
+cdep(8)            = 2*dep + 1;
 domain(:,8)        = cdom8;
 coeffs{8}          = ccoeffs8(1:n,1:n,1:n,:); 
 

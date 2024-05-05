@@ -29,6 +29,11 @@ handles = guihandles(h);
                         linspace(f.domain(5), f.domain(6), nplotpts));
 % v = func( xx, yy, zz);
 nd = numel(func);
+if nd == 1 && ~iscell(func)
+  func1 = []; 
+  func1{1} = func;
+  func = func1;
+end
 v = zeros(size(xx));
 for k = 1:nd
   v = v + func{k}(xx,yy,zz);

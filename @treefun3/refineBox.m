@@ -43,8 +43,9 @@ ccoeffs1           = treefun3.vals2coeffs(cvals1);
 f.coeffs{cid1}     = ccoeffs1(1:f.n,1:f.n,1:f.n,:); % to replace f.coeffs{cid1} = [];
 f.rint(:,cid1)     = squeeze(sqrt((csclx1*cscly1*csclz1)*sum(cvals1.^2.*ww0, [1 2 3])));
 f.vmax(:,cid1)     = squeeze(max(abs(cvals1),[],[1 2 3]));
-% f.col(cid1)        = 2*f.col(id);
-% f.row(cid1)        = 2*f.row(id);
+f.col(cid1)        = 2*f.col(id);
+f.row(cid1)        = 2*f.row(id);
+f.dep(cid1)        = 2*f.dep(id);
 % f.morton(cid1)     = cartesian2morton(f.col(cid1), f.row(cid1));
 
 cid2 = length(f.id)+1;
@@ -70,8 +71,9 @@ ccoeffs2           = treefun3.vals2coeffs(cvals2);
 f.coeffs{cid2}     = ccoeffs2(1:f.n,1:f.n,1:f.n,:); 
 f.rint(:,cid2)     = squeeze(sqrt((csclx2*cscly2*csclz2)*sum(cvals2.^2.*ww0, [1 2 3])));
 f.vmax(:,cid2)     = squeeze(max(abs(cvals2),[],[1 2 3]));
-% f.col(cid2)        = 2*f.col(id) + 1;
-% f.row(cid2)        = 2*f.row(id);
+f.col(cid2)        = 2*f.col(id) + 1;
+f.row(cid2)        = 2*f.row(id);
+f.dep(cid2)        = 2*f.dep(id);
 % f.morton(cid2)     = cartesian2morton(f.col(cid2), f.row(cid2));
 
 cid3 = length(f.id)+1;
@@ -97,8 +99,9 @@ ccoeffs3           = treefun3.vals2coeffs(cvals3);
 f.coeffs{cid3}     = ccoeffs3(1:f.n,1:f.n,1:f.n,:); 
 f.rint(:,cid3)     = squeeze(sqrt((csclx3*cscly3*csclz3)*sum(cvals3.^2.*ww0, [1 2 3])));
 f.vmax(:,cid3)     = squeeze(max(abs(cvals3),[],[1 2 3]));
-% f.col(cid3)        = 2*f.col(id);
-% f.row(cid3)        = 2*f.row(id) + 1;
+f.col(cid3)        = 2*f.col(id);
+f.row(cid3)        = 2*f.row(id) + 1;
+f.dep(cid3)        = 2*f.dep(id);
 % f.morton(cid3)     = cartesian2morton(f.col(cid3), f.row(cid3));
 
 cid4 = length(f.id)+1;
@@ -124,8 +127,9 @@ ccoeffs4           = treefun3.vals2coeffs(cvals4);
 f.coeffs{cid4}     = ccoeffs4(1:f.n,1:f.n,1:f.n,:); 
 f.rint(:,cid4)     = squeeze(sqrt((csclx4*cscly4*csclz4)*sum(cvals4.^2.*ww0, [1 2 3])));
 f.vmax(:,cid4)     = squeeze(max(abs(cvals4),[],[1 2 3]));
-% f.col(cid4)        = 2*f.col(id) + 1;
-% f.row(cid4)        = 2*f.row(id) + 1;
+f.col(cid4)        = 2*f.col(id) + 1;
+f.row(cid4)        = 2*f.row(id) + 1;
+f.dep(cid4)        = 2*f.dep(id);
 % f.morton(cid4)     = cartesian2morton(f.col(cid4), f.row(cid4));
 
 cid5 = length(f.id)+1;
@@ -151,6 +155,9 @@ ccoeffs5           = treefun3.vals2coeffs(cvals5);
 f.coeffs{cid5}     = ccoeffs5(1:f.n,1:f.n,1:f.n,:); 
 f.rint(:,cid5)     = squeeze(sqrt((csclx5*cscly5*csclz5)*sum(cvals5.^2.*ww0, [1 2 3])));
 f.vmax(:,cid5)     = squeeze(max(abs(cvals5),[],[1 2 3]));
+f.col(cid5)        = 2*f.col(id);
+f.row(cid5)        = 2*f.row(id);
+f.dep(cid5)        = 2*f.dep(id) + 1;
 
 cid6 = length(f.id)+1;
 f.domain(:,cid6)   = [xmid dom(2) dom(3) ymid zmid dom(6)];
@@ -175,6 +182,9 @@ ccoeffs6           = treefun3.vals2coeffs(cvals6);
 f.coeffs{cid6}     = ccoeffs6(1:f.n,1:f.n,1:f.n,:); 
 f.rint(:,cid6)     = squeeze(sqrt((csclx6*cscly6*csclz6)*sum(cvals6.^2.*ww0, [1 2 3])));
 f.vmax(:,cid6)     = squeeze(max(abs(cvals6),[],[1 2 3]));
+f.col(cid6)        = 2*f.col(id) + 1;
+f.row(cid6)        = 2*f.row(id);
+f.dep(cid6)        = 2*f.dep(id) + 1;
 
 cid7 = length(f.id)+1;
 f.domain(:,cid7)   = [dom(1) xmid ymid dom(4) zmid dom(6)];
@@ -199,6 +209,9 @@ ccoeffs7           = treefun3.vals2coeffs(cvals7);
 f.coeffs{cid7}     = ccoeffs7(1:f.n,1:f.n,1:f.n,:); 
 f.rint(:,cid7)     = squeeze(sqrt((csclx7*cscly7*csclz7)*sum(cvals7.^2.*ww0, [1 2 3])));
 f.vmax(:,cid7)     = squeeze(max(abs(cvals7),[],[1 2 3]));
+f.col(cid7)        = 2*f.col(id);
+f.row(cid7)        = 2*f.row(id) + 1;
+f.dep(cid7)        = 2*f.dep(id) + 1;
 
 cid8 = length(f.id)+1;
 f.domain(:,cid8)   = [xmid dom(2) ymid dom(4) zmid dom(6)];
@@ -223,6 +236,9 @@ ccoeffs8           = treefun3.vals2coeffs(cvals8);
 f.coeffs{cid8}     = ccoeffs8(1:f.n,1:f.n,1:f.n,:); 
 f.rint(:,cid8)     = squeeze(sqrt((csclx8*cscly8*csclz8)*sum(cvals8.^2.*ww0, [1 2 3])));
 f.vmax(:,cid8)     = squeeze(max(abs(cvals8),[],[1 2 3]));
+f.col(cid8)        = 2*f.col(id) + 1;
+f.row(cid8)        = 2*f.row(id) + 1;
+f.dep(cid8)        = 2*f.dep(id) + 1;
 
 f.children(:,id) = [cid1 cid2 cid3 cid4 cid5 cid6 cid7 cid8];
 f.height(id) = 1;
