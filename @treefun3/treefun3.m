@@ -52,7 +52,7 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
 
             dom = [-1 1 -1 1 -1 1];
             opts = struct();
-            opts.balance = false; % not yet
+            opts.balance = false; % fortran way exists, morton way intial attempt in BBBBBBBoston
             opts.neighbors = false;
             opts.tol = 1e-12;
             opts.checkpts = [];
@@ -174,12 +174,12 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
 
             % f = buildDepthFirst(f, func);
             f = buildBreadthFirst(f, func, opts.tol, opts.checkpts, opts.ifcoeffs, opts.ifstorecoeffs);
-            % f.morton = cartesian2morton(f.col, f.row);
+            f.morton = cartesian2morton(f.col, f.row, f.dep);
 
             % Now do level restriction
-            opts.balance = false;
             if ( opts.balance )
-                f = balancef(f);
+                f = balance(f);
+                % f = balancef(f);
             else
                 % Do a cumulative sum in reverse to correct the heights
                 for k = length(f.id):-1:1
