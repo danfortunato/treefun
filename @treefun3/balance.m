@@ -145,19 +145,20 @@ end
 
 % Propagate the coefficients to the leaves, since they may be stored in
 % intermediate nodes of g (which used to be leaves of f)
-%% this needs to be done for 3d
-if 0
 for l = 1:gnlevels-1
     for gid = glevelIdx(l):glevelIdx(l+1)-1
         if ( gheight(gid) > 0 && ~isempty(gcoeffs{gid}) )
-            [LL, LR, UL, UR] = coeffs2children(gcoeffs{gid});
-            gcoeffs{gchildren(1,gid)} = LL;
-            gcoeffs{gchildren(2,gid)} = LR;
-            gcoeffs{gchildren(3,gid)} = UL;
-            gcoeffs{gchildren(4,gid)} = UR;
+            [LLD, LRD, ULD, URD, LLT, LRT, ULT, URT] = coeffs2children(gcoeffs{gid});
+            gcoeffs{gchildren(1,gid)} = LLD;
+            gcoeffs{gchildren(2,gid)} = LRD;
+            gcoeffs{gchildren(3,gid)} = ULD;
+            gcoeffs{gchildren(4,gid)} = URD;
+            gcoeffs{gchildren(5,gid)} = LLT;
+            gcoeffs{gchildren(6,gid)} = LRT;
+            gcoeffs{gchildren(7,gid)} = ULT;
+            gcoeffs{gchildren(8,gid)} = URT;
         end
     end
-end
 end
 
 % Make a new treefun2
