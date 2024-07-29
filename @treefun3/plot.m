@@ -28,16 +28,22 @@ handles = guihandles(h);
                         linspace(f.domain(3), f.domain(4), nplotpts), ...
                         linspace(f.domain(5), f.domain(6), nplotpts));
 % v = func( xx, yy, zz);
-nd = numel(func);
-if nd == 1 && ~iscell(func)
-  func1 = []; 
-  func1{1} = func;
-  func = func1;
-end
+tmpval = func(0,0,0);
+nd = numel(tmpval);
+% nd = numel(func);
+% if nd == 1 && ~iscell(func)
+%   func1 = []; 
+%   func1{1} = func;
+%   func = func1;
+% end
 v = zeros(size(xx));
+tmpvals = func(xx,yy,zz);
 for k = 1:nd
-  v = v + func{k}(xx,yy,zz);
+  v = v + tmpvals(:,:,:,k);
 end
+% for k = 1:nd
+%   v = v + func{k}(xx,yy,zz);
+% end
 if isreal(v)
     [row,col,tube] = ind2sub(size(v), find(v(:) == max(v(:)), 1, 'last'));
 else

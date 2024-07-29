@@ -106,6 +106,9 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
                 if ( isfield(opts1, 'checkpts') )
                     opts.checkpts = opts1.checkpts;
                 end
+                if ( isfield(opts1, 'ifcoeffs') )
+                    opts.ifcoeffs = opts1.ifcoeffs;
+                end
             elseif ( nargin == 9 )
                 % TREEFUN3(DOMAIN, LEVEL, HEIGHT, ID, PARENT, CHILDREN,
                 %   COEFFS, COL, ROW)
@@ -127,12 +130,13 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
 
             % initialize vals, rint, coeffs... wrap this up?
             nalias = f.n;
-            nd = numel(func);
-            if nd == 1 && ~iscell(func)
-              func1 = []; 
-              func1{1} = func;
-              func = func1;
-            end
+            tmpval = func(0,0,0);
+            nd = numel(tmpval);
+            % if nd == 1 && ~iscell(func)
+            %   func1 = []; 
+            %   func1{1} = func;
+            %   func = func1;
+            % end
             x0 = (1-cos(pi*(2*(1:nalias)'-1)/(2*nalias)))/2;
             [xx0, yy0, zz0] = ndgrid(x0);
             l = floor(nalias/2)+1;
@@ -147,9 +151,13 @@ classdef treefun3  %#ok<*PROP,*PROPLC>
             zz = sclz*zz0 + dom(5); 
             ww0 = wx0.*wy0.*wz0;
             vals = cell(1,nd);
+            tmpvals = func(xx,yy,zz);
             for k = 1:nd
-              vals{k} = func{k}(xx,yy,zz);
+              vals{k} = tmpvals(:,:,:,k);
             end
+            % for k = 1:nd
+            %   vals{k} = func{k}(xx,yy,zz);
+            % end
             vals = cat(4,vals{:});
             coeffs = treefun3.vals2coeffs(vals);
             rint = max(squeeze(sqrt((sclx*scly*sclz)*sum(vals.^2.*ww0, [1 2 3]))),1e-16); % initialze l2
@@ -360,18 +368,24 @@ eta = 0;
 
 if ~ifcoeffs
   resolved = 1;
-  xxx = sclx*xxx0 + dom(1); 
-  yyy = scly*yyy0 + dom(3); 
-  zzz = sclz*zzz0 + dom(5); 
-  vals = cell(1,nd);
-  for k = 1:nd
-    vals{k} = f{k}(xxx,yyy,zzz);
-  end
-  F = cat(4,vals{:});
-  G = treefun3.coeffs2refvals(coeffs); % structured grid
-  for k = 1:nd
-    erra = sqrt(sum(squeeze(G(:,:,:,k) - F(:,:,:,k)).^2.*www0,'all'));
-    resolved = resolved && ( erra < tol * sqrt(1/(sclx*scly*sclz)) * rint(k) );
+  if (sclx>tol) || (scly>tol) || (sclz>tol) % is this ok?
+    xxx = sclx*xxx0 + dom(1); 
+    yyy = scly*yyy0 + dom(3); 
+    zzz = sclz*zzz0 + dom(5); 
+    vals = cell(1,nd);
+    tmpvals = f(xxx,yyy,zzz);
+    for k = 1:nd
+      vals{k} = tmpvals(:,:,:,k);
+    end
+    % for k = 1:nd
+    %   vals{k} = f{k}(xxx,yyy,zzz);
+    % end
+    F = cat(4,vals{:});
+    G = treefun3.coeffs2refvals(coeffs); % structured grid
+    for k = 1:nd
+      erra = sqrt(sum(squeeze(G(:,:,:,k) - F(:,:,:,k)).^2.*www0,'all'));
+      resolved = resolved && ( erra < tol * sqrt(1/(sclx*scly*sclz)) * rint(k) );
+    end
   end
 
 elseif ifcoeffs
@@ -418,9 +432,10 @@ if ( ~isempty(checkpts) ) % check if func values @ checkpts agree
          zzz>=-1 & zzz<=1);
   if ( any(in) )
     F = zeros(nd,sum(in));
-    for k = 1:nd
-      F(k,:) = f{k}(checkpts(1,in)',checkpts(2,in)',checkpts(3,in)')'; % nd x n checkpts
-    end
+    F = reshape(squeeze(f(checkpts(1,in)',checkpts(2,in)',checkpts(3,in)'))',[nd sum(in)]);
+    % for k = 1:nd
+    %   F(k,:) = f{k}(checkpts(1,in)',checkpts(2,in)',checkpts(3,in)')'; % nd x n checkpts
+    % end
     G = treefun3.coeffs2checkvals(coeffs,xxx(in),yyy(in),zzz(in));
     err_checkvals = max(abs(F - G),[],2);
     for k = 1:nd
@@ -457,7 +472,9 @@ zmid = mean(dom(5:6));
 % domain and coeffs
 domain = zeros(6,8);
 coeffs = cell(1,8);
-nd = numel(func);
+% nd = numel(func);
+tmpval = func(0,0,0);
+nd = numel(tmpval);
 
 % morton related
 ccol = uint64(zeros(1,8));
@@ -473,9 +490,13 @@ cxx1               = csclx1*xx0 + cdom1(1);
 cyy1               = cscly1*yy0 + cdom1(3); 
 czz1               = csclz1*zz0 + cdom1(5); 
 cvals1             = cell(1,nd);
+tmpvals1           = func(cxx1,cyy1,czz1);
 for k = 1:nd
-  cvals1{k}        = func{k}(cxx1,cyy1,czz1);
+  cvals1{k}        = tmpvals1(:,:,:,k);
 end
+% for k = 1:nd
+%   cvals1{k}        = func{k}(cxx1,cyy1,czz1);
+% end
 cvals1             = cat(4,cvals1{:});
 ccoeffs1           = treefun3.vals2coeffs(cvals1);
 ccol(1)            = 2*col;
@@ -493,9 +514,13 @@ cxx2               = csclx2*xx0 + cdom2(1);
 cyy2               = cscly2*yy0 + cdom2(3); 
 czz2               = csclz2*zz0 + cdom2(5); 
 cvals2             = cell(1,nd);
+tmpvals2           = func(cxx2,cyy2,czz2);
 for k = 1:nd
-  cvals2{k}        = func{k}(cxx2,cyy2,czz2);
+  cvals2{k}        = tmpvals2(:,:,:,k);
 end
+% for k = 1:nd
+%   cvals2{k}        = func{k}(cxx2,cyy2,czz2);
+% end
 cvals2             = cat(4,cvals2{:});
 ccoeffs2           = treefun3.vals2coeffs(cvals2);
 ccol(2)            = 2*col + 1;
@@ -513,9 +538,13 @@ cxx3               = csclx3*xx0 + cdom3(1);
 cyy3               = cscly3*yy0 + cdom3(3); 
 czz3               = csclz3*zz0 + cdom3(5); 
 cvals3             = cell(1,nd);
+tmpvals3           = func(cxx3,cyy3,czz3);
 for k = 1:nd
-  cvals3{k}        = func{k}(cxx3,cyy3,czz3);
+  cvals3{k}        = tmpvals3(:,:,:,k);
 end
+% for k = 1:nd
+%   cvals3{k}        = func{k}(cxx3,cyy3,czz3);
+% end
 cvals3             = cat(4,cvals3{:});
 ccoeffs3           = treefun3.vals2coeffs(cvals3);
 ccol(3)            = 2*col;
@@ -533,9 +562,13 @@ cxx4               = csclx4*xx0 + cdom4(1);
 cyy4               = cscly4*yy0 + cdom4(3); 
 czz4               = csclz4*zz0 + cdom4(5); 
 cvals4             = cell(1,nd);
+tmpvals4           = func(cxx4,cyy4,czz4);
 for k = 1:nd
-  cvals4{k}        = func{k}(cxx4,cyy4,czz4);
+  cvals4{k}        = tmpvals4(:,:,:,k);
 end
+% for k = 1:nd
+%   cvals4{k}        = func{k}(cxx4,cyy4,czz4);
+% end
 cvals4             = cat(4,cvals4{:});
 ccoeffs4           = treefun3.vals2coeffs(cvals4);
 ccol(4)            = 2*col + 1;
@@ -553,9 +586,13 @@ cxx5               = csclx5*xx0 + cdom5(1);
 cyy5               = cscly5*yy0 + cdom5(3); 
 czz5               = csclz5*zz0 + cdom5(5); 
 cvals5             = cell(1,nd);
+tmpvals5           = func(cxx5,cyy5,czz5);
 for k = 1:nd
-  cvals5{k}        = func{k}(cxx5,cyy5,czz5);
+  cvals5{k}        = tmpvals5(:,:,:,k);
 end
+% for k = 1:nd
+%   cvals5{k}        = func{k}(cxx5,cyy5,czz5);
+% end
 cvals5             = cat(4,cvals5{:});
 ccoeffs5           = treefun3.vals2coeffs(cvals5);
 ccol(5)            = 2*col;
@@ -573,9 +610,13 @@ cxx6               = csclx6*xx0 + cdom6(1);
 cyy6               = cscly6*yy0 + cdom6(3); 
 czz6               = csclz6*zz0 + cdom6(5); 
 cvals6             = cell(1,nd);
+tmpvals6           = func(cxx6,cyy6,czz6);
 for k = 1:nd
-  cvals6{k}        = func{k}(cxx6,cyy6,czz6);
+  cvals6{k}        = tmpvals6(:,:,:,k);
 end
+% for k = 1:nd
+%   cvals6{k}        = func{k}(cxx6,cyy6,czz6);
+% end
 cvals6             = cat(4,cvals6{:});
 ccoeffs6           = treefun3.vals2coeffs(cvals6);
 ccol(6)            = 2*col + 1;
@@ -593,9 +634,13 @@ cxx7               = csclx7*xx0 + cdom7(1);
 cyy7               = cscly7*yy0 + cdom7(3); 
 czz7               = csclz7*zz0 + cdom7(5); 
 cvals7             = cell(1,nd);
+tmpvals7           = func(cxx7,cyy7,czz7);
 for k = 1:nd
-  cvals7{k}        = func{k}(cxx7,cyy7,czz7);
+  cvals7{k}        = tmpvals7(:,:,:,k);
 end
+% for k = 1:nd
+%   cvals7{k}        = func{k}(cxx7,cyy7,czz7);
+% end
 cvals7             = cat(4,cvals7{:});
 ccoeffs7           = treefun3.vals2coeffs(cvals7);
 ccol(7)            = 2*col;
@@ -613,9 +658,13 @@ cxx8               = csclx8*xx0 + cdom8(1);
 cyy8               = cscly8*yy0 + cdom8(3); 
 czz8               = csclz8*zz0 + cdom8(5); 
 cvals8             = cell(1,nd);
+tmpvals8           = func(cxx8,cyy8,czz8);
 for k = 1:nd
-  cvals8{k}        = func{k}(cxx8,cyy8,czz8);
+  cvals8{k}        = tmpvals8(:,:,:,k);
 end
+% for k = 1:nd
+%   cvals8{k}        = func{k}(cxx8,cyy8,czz8);
+% end
 cvals8             = cat(4,cvals8{:});
 ccoeffs8           = treefun3.vals2coeffs(cvals8);
 ccol(8)            = 2*col + 1;
