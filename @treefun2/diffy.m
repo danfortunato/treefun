@@ -1,4 +1,4 @@
-function f = diffy(f)
+function f = diffy(f, n)
 %DIFFY   Differentiate a TREEFUN2 with respect to y.
 %   DIFFY(F) returns a TREEFUN2 representing the derivative of the TREEFUN2
 %   F in its second argument.
