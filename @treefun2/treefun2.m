@@ -156,6 +156,15 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
 
         end
 
+        function n = numArgumentsFromSubscript(obj,s,indexingContext) %#ok<INUSD>
+        %NUMARGUMENTSFROMSUBSCRIPT   Number of arguments for customized indexing methods.
+        %   Overloading NUMEL() gives the wrong NARGOUT for SUBSREF().
+        %   Defining this function fixes it.
+        %
+        % See also NUMEL, NARGOUT, SUBSREF.
+            n = 1;
+        end
+
     end
 
     methods ( Access = private )
