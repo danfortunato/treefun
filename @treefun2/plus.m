@@ -1,7 +1,7 @@
 function h = plus(f, g)
 %+   Plus for TREEFUN2.
-%   F + G adds the TREEFUN2 objects F and G. F and G must have the same
-%   domains and discretization sizes. F and G may also be scalars.
+%   F + G adds the TREEFUN2 objects F and G. F and G must have the same tree
+%   structure. F and G may also be scalars.
 %
 %   See also MINUS.
 

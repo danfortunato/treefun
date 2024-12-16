@@ -124,8 +124,8 @@ for fid = 1:fnboxes
         %fc = fcol(fid);
         %fr = frow(fid);
         fl = flevel(fid);
-        while ( ~(gmorton(gid)==fm && glevel(gid)==fl) && gid <= gnboxes )
-        %while ( ~(gcol(gid)==fc && grow(gid)==fr && glevel(gid)==fl) && gid <= gnboxes )
+        while ( gid <= gnboxes && ~(gmorton(gid)==fm && glevel(gid)==fl) )
+        %while ( gid <= gnboxes && ~(gcol(gid)==fc && grow(gid)==fr && glevel(gid)==fl) )
             gid = gid + 1;
         end
         if ( gid > gnboxes )
