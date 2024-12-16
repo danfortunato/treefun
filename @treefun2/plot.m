@@ -5,12 +5,26 @@ function varargout = plot(f, dom, varargin)
 %
 %   See also SURF, MESH.
 
-if ( nargin < 2 )
-    dom = f.domain(:,1);
+if ( isempty(f) )
+    return
+end
+
+doLabel = false;
+for k = 1:length(varargin)
+    if ( isstring(varargin{k}) && lower(varargin{k}) == "label" )
+        doLabel = varargin{k+1};
+        varargin(k:k+1) = [];
+        break
+    end
 end
 
 holdState = ishold();
 nplotpts = 800;
+root = f.root;
+
+if ( nargin < 2 )
+    dom = f.domain(:,root);
+end
 
 % Plot the function
 hold on
@@ -42,6 +56,12 @@ line('XData', xdata(:), 'YData', ydata(:), 'LineWidth', 1)
 axis equal
 xlim(dom(1:2))
 ylim(dom(3:4))
+
+if ( doLabel )
+    cx = sum(f.domain(1:2,ids)) / 2;
+    cy = sum(f.domain(3:4,ids)) / 2;
+    text(cx, cy, int2str(ids(:)), 'HorizontalAlignment', 'center')
+end
 
 if ( ~holdState )
     hold off
