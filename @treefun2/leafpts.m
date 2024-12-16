@@ -1,7 +1,11 @@
-function [xx, yy, ww] = leafpts(f)
+function [xx, yy, ww] = leafpts(f, type)
 
-[xx0, yy0] = chebpts2(f.n, f.n, [0 1 0 1]);
-[~, w0] = chebpts(f.n, [0 1]);
+if ( nargin < 2 )
+    type = @(n) chebpts(n, [0 1], 2);
+end
+
+[x0, w0] = type(f.n);
+[xx0, yy0] = meshgrid(x0);
 ww0 = w0(:) * w0(:).';
 
 ids = leaves(f);
