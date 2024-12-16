@@ -15,9 +15,9 @@ if ( isempty(f) )
 end
 
 % Get information that we want to display:
-dom = f.domain(:,1); % Domain
-nleaves = length(f); % Number of leaves
-nlevels = height(f); % Number of levels
+dom = f.domain(:,f.root); % Domain
+nleaves = length(f);      % Number of leaves
+nlevels = height(f);      % Number of levels
 
 % Display the information:
 disp('   treefun2 object')
