@@ -27,7 +27,7 @@ view(2)
 % Plot the boxes
 xdata = [f.domain([1 2 2 1 1], ids) ; nan(1, length(ids))];
 ydata = [f.domain([3 3 4 4 3], ids) ; nan(1, length(ids))];
-line('XData', xdata(:), 'YData', ydata(:), 'LineWidth', 1)
+line('XData', xdata(:), 'YData', ydata(:), 'LineWidth', 1, varargin{:})
 
 axis equal
 xlim(f.domain(1:2, 1))
