@@ -1,4 +1,4 @@
-classdef treefun2  %#ok<*PROP,*PROPLC>
+classdef treefun2 %#ok<*PROP,*PROPLC>
 %TREEFUN2   Piecewise polynomial on an adaptive quadtree.
 %   TREEFUN2(F) constructs a TREEFUN2 object representing the function F on
 %   the domain [-1, 1] x [-1, 1]. F may be a function handle, scalar, or
@@ -26,12 +26,20 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
 %     - If true, enforce that the tree is balanced (also called level
 %       restricted). This condition means that the neighbors of any box
 %       must be no more than one level apart from the box.
-
+%
 %     OPTS.NEIGHBORS     [true] / false
 %
 %     - If true, generate arrays of neighbor indices for each box. These
 %     arrays are then stored in the TREEFUN2 properties flatNeighbors and
 %     leafNeighbors.
+%
+%     OPTS.INIT          [treefun2]
+%
+%     - Initialize the treefun from a given tree structure.
+%
+%     OPTS.TOL           [1e-12]
+%
+%     - Tolerance for resolving the given function on each leaf.
 
     properties
 
@@ -48,6 +56,7 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
         morton
         flatNeighbors
         leafNeighbors
+        root = 1
 
     end
 
@@ -63,6 +72,8 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
             opts = struct();
             opts.balance = true;
             opts.neighbors = true;
+            opts.init = [];
+            opts.tol = 1e-12;
             
             if ( nargin == 2 )
                 if ( isa(varargin{2}, 'treefun2') ) % TREEFUN2(F, TF)
@@ -105,6 +116,12 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
                 if ( isfield(opts1, 'neighbors') )
                     opts.neighbors = opts1.neighbors;
                 end
+                if ( isfield(opts1, 'init') )
+                    opts.init = opts1.init;
+                end
+                if ( isfield(opts1, 'tol') )
+                    opts.tol = opts1.tol;
+                end
             elseif ( nargin == 9 )
                 % TREEFUN2(DOMAIN, LEVEL, HEIGHT, ID, PARENT, CHILDREN,
                 %   COEFFS, COL, ROW)
@@ -133,9 +150,9 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
             f.coeffs{1}     = [];
             f.col           = uint64(0);
             f.row           = uint64(0);
-            
-            % f = buildDepthFirst(f, func);
-            f = buildBreadthFirst(f, func);
+
+            % f = buildDepthFirst(f, func, opts.tol);
+            f = buildBreadthFirst(f, func, opts.tol);
             f.morton = cartesian2morton(f.col, f.row);
 
             % Now do level restriction
@@ -157,18 +174,27 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
 
         end
 
+        function n = numArgumentsFromSubscript(obj,s,indexingContext) %#ok<INUSD>
+        %NUMARGUMENTSFROMSUBSCRIPT   Number of arguments for customized indexing methods.
+        %   Overloading NUMEL() gives the wrong NARGOUT for SUBSREF().
+        %   Defining this function fixes it.
+        %
+        % See also NUMEL, NARGOUT, SUBSREF.
+            n = 1;
+        end
+
     end
 
     methods ( Access = private )
 
         f = refineBox(f, id);
 
-        function f = buildBreadthFirst(f, func)
+        function f = buildBreadthFirst(f, func, tol)
 
             % Note: the length changes at each iteration here
             id = 1;
             while ( id <= length(f.id) )
-                [resolved, coeffs] = isResolved(func, f.domain(:,id), f.n);
+                [resolved, coeffs] = isResolved(func, f.domain(:,id), f.n, tol);
                 if ( resolved )
                     f.coeffs{id} = coeffs;
                     f.height(id) = 0;
@@ -190,7 +216,7 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
 
         end
         
-        function f = buildDepthFirst(f, func, id, level)
+        function f = buildDepthFirst(f, func, id, level, tol)
 
             if ( nargin == 2 )
                 id = 1;
@@ -200,7 +226,7 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
             f.level(id) = level;
             f.height(id) = 0;
 
-            [resolved, coeffs] = isResolved(func, f.domain(:,id), f.n);
+            [resolved, coeffs] = isResolved(func, f.domain(:,id), f.n, tol);
 
             if ( resolved )
                 f.coeffs{id} = coeffs;
@@ -209,10 +235,10 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
                 f = refineBox(f, id);
 
                 % Recurse
-                f = buildDepthFirst(f, func, f.children(1,id), level+1);
-                f = buildDepthFirst(f, func, f.children(2,id), level+1);
-                f = buildDepthFirst(f, func, f.children(3,id), level+1);
-                f = buildDepthFirst(f, func, f.children(4,id), level+1);
+                f = buildDepthFirst(f, func, f.children(1,id), level+1, tol);
+                f = buildDepthFirst(f, func, f.children(2,id), level+1, tol);
+                f = buildDepthFirst(f, func, f.children(3,id), level+1, tol);
+                f = buildDepthFirst(f, func, f.children(4,id), level+1, tol);
 
                 % Set height
                 f.height(id) = 1 + max(f.height(f.children(:,id)));
@@ -235,11 +261,10 @@ classdef treefun2  %#ok<*PROP,*PROPLC>
 
 end
 
-function [resolved, coeffs] = isResolved(f, dom, n)
+function [resolved, coeffs] = isResolved(f, dom, n, tol)
 
 persistent xx0 yy0 xxx0 yyy0 nstored
 
-tol = 1e-12;
 nalias = 2*n;
 nrefpts = 2*n; % Sample at equispaced points to test error
 

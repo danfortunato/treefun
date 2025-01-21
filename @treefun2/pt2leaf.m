@@ -1,7 +1,7 @@
 function [ids, xs, ys, idxs] = pt2leaf(f, x, y)
 %PT2LEAF   Find the leaves containing the given points.
 
-[ids, xs, ys, idxs] = ipt2leaf(f, 1, x(:), y(:), (1:numel(x)).');
+[ids, xs, ys, idxs] = ipt2leaf(f, f.root, x(:), y(:), (1:numel(x)).');
 
 end
 
@@ -15,9 +15,9 @@ if ( any(in) )
     yin = y(in);
     idxin = idx(in);
     if ( f.height(root) == 0 )
-        ids = root;
-        xs = {xin};
-        ys = {yin};
+        ids  = root;
+        xs   = {xin};
+        ys   = {yin};
         idxs = {idxin};
     else
         [id1, xs1, ys1, idxs1] = ipt2leaf(f, f.children(1,root), xin, yin, idxin);
