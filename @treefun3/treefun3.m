@@ -496,15 +496,16 @@ csclz1             = diff(cdom1(5:6));
 cxx1               = csclx1*xx0 + cdom1(1); 
 cyy1               = cscly1*yy0 + cdom1(3); 
 czz1               = csclz1*zz0 + cdom1(5); 
-cvals1             = cell(1,nd);
-tmpvals1           = func(cxx1,cyy1,czz1);
-for k = 1:nd
-  cvals1{k}        = tmpvals1(:,:,:,k);
-end
+% cvals1             = cell(1,nd);
+% tmpvals1           = func(cxx1,cyy1,czz1);
 % for k = 1:nd
-%   cvals1{k}        = func{k}(cxx1,cyy1,czz1);
+%   cvals1{k}        = tmpvals1(:,:,:,k);
 % end
-cvals1             = cat(4,cvals1{:});
+% % for k = 1:nd
+% %   cvals1{k}        = func{k}(cxx1,cyy1,czz1);
+% % end
+% cvals1             = cat(4,cvals1{:});
+cvals1             = func(cxx1,cyy1,czz1);
 ccoeffs1           = treefun3.vals2coeffs(cvals1);
 ccol(1)            = 2*col;
 crow(1)            = 2*row;
@@ -520,15 +521,16 @@ csclz2             = diff(cdom2(5:6));
 cxx2               = csclx2*xx0 + cdom2(1); 
 cyy2               = cscly2*yy0 + cdom2(3); 
 czz2               = csclz2*zz0 + cdom2(5); 
-cvals2             = cell(1,nd);
-tmpvals2           = func(cxx2,cyy2,czz2);
-for k = 1:nd
-  cvals2{k}        = tmpvals2(:,:,:,k);
-end
+% cvals2             = cell(1,nd);
+% tmpvals2           = func(cxx2,cyy2,czz2);
 % for k = 1:nd
-%   cvals2{k}        = func{k}(cxx2,cyy2,czz2);
+%   cvals2{k}        = tmpvals2(:,:,:,k);
 % end
-cvals2             = cat(4,cvals2{:});
+% % for k = 1:nd
+% %   cvals2{k}        = func{k}(cxx2,cyy2,czz2);
+% % end
+% cvals2             = cat(4,cvals2{:});
+cvals2             = func(cxx2,cyy2,czz2);
 ccoeffs2           = treefun3.vals2coeffs(cvals2);
 ccol(2)            = 2*col + 1;
 crow(2)            = 2*row;
@@ -544,15 +546,16 @@ csclz3             = diff(cdom3(5:6));
 cxx3               = csclx3*xx0 + cdom3(1); 
 cyy3               = cscly3*yy0 + cdom3(3); 
 czz3               = csclz3*zz0 + cdom3(5); 
-cvals3             = cell(1,nd);
-tmpvals3           = func(cxx3,cyy3,czz3);
-for k = 1:nd
-  cvals3{k}        = tmpvals3(:,:,:,k);
-end
+% cvals3             = cell(1,nd);
+% tmpvals3           = func(cxx3,cyy3,czz3);
 % for k = 1:nd
-%   cvals3{k}        = func{k}(cxx3,cyy3,czz3);
+%   cvals3{k}        = tmpvals3(:,:,:,k);
 % end
-cvals3             = cat(4,cvals3{:});
+% % for k = 1:nd
+% %   cvals3{k}        = func{k}(cxx3,cyy3,czz3);
+% % end
+% cvals3             = cat(4,cvals3{:});
+cvals3             = func(cxx3,cyy3,czz3);
 ccoeffs3           = treefun3.vals2coeffs(cvals3);
 ccol(3)            = 2*col;
 crow(3)            = 2*row + 1;
@@ -568,15 +571,16 @@ csclz4             = diff(cdom4(5:6));
 cxx4               = csclx4*xx0 + cdom4(1); 
 cyy4               = cscly4*yy0 + cdom4(3); 
 czz4               = csclz4*zz0 + cdom4(5); 
-cvals4             = cell(1,nd);
-tmpvals4           = func(cxx4,cyy4,czz4);
-for k = 1:nd
-  cvals4{k}        = tmpvals4(:,:,:,k);
-end
+% cvals4             = cell(1,nd);
+% tmpvals4           = func(cxx4,cyy4,czz4);
 % for k = 1:nd
-%   cvals4{k}        = func{k}(cxx4,cyy4,czz4);
+%   cvals4{k}        = tmpvals4(:,:,:,k);
 % end
-cvals4             = cat(4,cvals4{:});
+% % for k = 1:nd
+% %   cvals4{k}        = func{k}(cxx4,cyy4,czz4);
+% % end
+% cvals4             = cat(4,cvals4{:});
+cvals4             = func(cxx4,cyy4,czz4);
 ccoeffs4           = treefun3.vals2coeffs(cvals4);
 ccol(4)            = 2*col + 1;
 crow(4)            = 2*row + 1;
@@ -592,15 +596,16 @@ csclz5             = diff(cdom5(5:6));
 cxx5               = csclx5*xx0 + cdom5(1); 
 cyy5               = cscly5*yy0 + cdom5(3); 
 czz5               = csclz5*zz0 + cdom5(5); 
-cvals5             = cell(1,nd);
-tmpvals5           = func(cxx5,cyy5,czz5);
-for k = 1:nd
-  cvals5{k}        = tmpvals5(:,:,:,k);
-end
+% cvals5             = cell(1,nd);
+% tmpvals5           = func(cxx5,cyy5,czz5);
 % for k = 1:nd
-%   cvals5{k}        = func{k}(cxx5,cyy5,czz5);
+%   cvals5{k}        = tmpvals5(:,:,:,k);
 % end
-cvals5             = cat(4,cvals5{:});
+% % for k = 1:nd
+% %   cvals5{k}        = func{k}(cxx5,cyy5,czz5);
+% % end
+% cvals5             = cat(4,cvals5{:});
+cvals5             = func(cxx5,cyy5,czz5);
 ccoeffs5           = treefun3.vals2coeffs(cvals5);
 ccol(5)            = 2*col;
 crow(5)            = 2*row;
@@ -616,15 +621,16 @@ csclz6             = diff(cdom6(5:6));
 cxx6               = csclx6*xx0 + cdom6(1); 
 cyy6               = cscly6*yy0 + cdom6(3); 
 czz6               = csclz6*zz0 + cdom6(5); 
-cvals6             = cell(1,nd);
-tmpvals6           = func(cxx6,cyy6,czz6);
-for k = 1:nd
-  cvals6{k}        = tmpvals6(:,:,:,k);
-end
+% cvals6             = cell(1,nd);
+% tmpvals6           = func(cxx6,cyy6,czz6);
 % for k = 1:nd
-%   cvals6{k}        = func{k}(cxx6,cyy6,czz6);
+%   cvals6{k}        = tmpvals6(:,:,:,k);
 % end
-cvals6             = cat(4,cvals6{:});
+% % for k = 1:nd
+% %   cvals6{k}        = func{k}(cxx6,cyy6,czz6);
+% % end
+% cvals6             = cat(4,cvals6{:});
+cvals6             = func(cxx6,cyy6,czz6);
 ccoeffs6           = treefun3.vals2coeffs(cvals6);
 ccol(6)            = 2*col + 1;
 crow(6)            = 2*row;
@@ -640,15 +646,16 @@ csclz7             = diff(cdom7(5:6));
 cxx7               = csclx7*xx0 + cdom7(1); 
 cyy7               = cscly7*yy0 + cdom7(3); 
 czz7               = csclz7*zz0 + cdom7(5); 
-cvals7             = cell(1,nd);
-tmpvals7           = func(cxx7,cyy7,czz7);
-for k = 1:nd
-  cvals7{k}        = tmpvals7(:,:,:,k);
-end
+% cvals7             = cell(1,nd);
+% tmpvals7           = func(cxx7,cyy7,czz7);
 % for k = 1:nd
-%   cvals7{k}        = func{k}(cxx7,cyy7,czz7);
+%   cvals7{k}        = tmpvals7(:,:,:,k);
 % end
-cvals7             = cat(4,cvals7{:});
+% % for k = 1:nd
+% %   cvals7{k}        = func{k}(cxx7,cyy7,czz7);
+% % end
+% cvals7             = cat(4,cvals7{:});
+cvals7             = func(cxx7,cyy7,czz7);
 ccoeffs7           = treefun3.vals2coeffs(cvals7);
 ccol(7)            = 2*col;
 crow(7)            = 2*row + 1;
@@ -664,15 +671,16 @@ csclz8             = diff(cdom8(5:6));
 cxx8               = csclx8*xx0 + cdom8(1); 
 cyy8               = cscly8*yy0 + cdom8(3); 
 czz8               = csclz8*zz0 + cdom8(5); 
-cvals8             = cell(1,nd);
-tmpvals8           = func(cxx8,cyy8,czz8);
-for k = 1:nd
-  cvals8{k}        = tmpvals8(:,:,:,k);
-end
+% cvals8             = cell(1,nd);
+% tmpvals8           = func(cxx8,cyy8,czz8);
 % for k = 1:nd
-%   cvals8{k}        = func{k}(cxx8,cyy8,czz8);
+%   cvals8{k}        = tmpvals8(:,:,:,k);
 % end
-cvals8             = cat(4,cvals8{:});
+% % for k = 1:nd
+% %   cvals8{k}        = func{k}(cxx8,cyy8,czz8);
+% % end
+% cvals8             = cat(4,cvals8{:});
+cvals8             = func(cxx8,cyy8,czz8);
 ccoeffs8           = treefun3.vals2coeffs(cvals8);
 ccol(8)            = 2*col + 1;
 crow(8)            = 2*row + 1;
