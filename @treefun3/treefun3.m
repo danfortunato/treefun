@@ -372,20 +372,27 @@ if ~ifcoeffs
     xxx = sclx*xxx0 + dom(1); 
     yyy = scly*yyy0 + dom(3); 
     zzz = sclz*zzz0 + dom(5); 
-    vals = cell(1,nd);
-    tmpvals = f(xxx,yyy,zzz);
-    for k = 1:nd
-      vals{k} = tmpvals(:,:,:,k);
-    end
-    % for k = 1:nd
-    %   vals{k} = f{k}(xxx,yyy,zzz);
-    % end
-    F = cat(4,vals{:});
+    F = f(xxx,yyy,zzz);
     G = treefun3.coeffs2refvals(coeffs); % structured grid
-    for k = 1:nd
-      erra = sqrt(sum(squeeze(G(:,:,:,k) - F(:,:,:,k)).^2.*www0,'all'));
-      resolved = resolved && ( erra < tol * sqrt(1/(sclx*scly*sclz)) * rint(k) );
-    end
+    GmF = (G - F).^2 .* www0;
+    erra = sqrt(sum(reshape(GmF,[],nd),1));
+    resolved = prod(erra(:) < tol * sqrt(1/(sclx*scly*sclz)) * rint(:));
+
+    % vals = cell(1,nd);
+    % tmpvals = f(xxx,yyy,zzz);
+    % for k = 1:nd
+    %   vals{k} = tmpvals(:,:,:,k);
+    % end
+    % % for k = 1:nd
+    % %   vals{k} = f{k}(xxx,yyy,zzz);
+    % % end
+    % F = cat(4,vals{:});
+    % G = treefun3.coeffs2refvals(coeffs); % structured grid
+    % for k = 1:nd
+    %   erra = sqrt(sum(squeeze(G(:,:,:,k) - F(:,:,:,k)).^2.*www0,'all'));
+    %   resolved = resolved && ( erra < tol * sqrt(1/(sclx*scly*sclz)) * rint(k) );
+    % end
+    
   end
 
 elseif ifcoeffs
@@ -674,22 +681,37 @@ domain(:,8)        = cdom8;
 coeffs{8}          = ccoeffs8(1:n,1:n,1:n,:); 
 
 % a few other things
-rint = [squeeze(sqrt((csclx1*cscly1*csclz1)*sum(cvals1.^2.*ww0, [1 2 3]))),...
-        squeeze(sqrt((csclx2*cscly2*csclz2)*sum(cvals2.^2.*ww0, [1 2 3]))),...
-        squeeze(sqrt((csclx3*cscly3*csclz3)*sum(cvals3.^2.*ww0, [1 2 3]))),...
-        squeeze(sqrt((csclx4*cscly4*csclz4)*sum(cvals4.^2.*ww0, [1 2 3]))),...
-        squeeze(sqrt((csclx5*cscly5*csclz5)*sum(cvals5.^2.*ww0, [1 2 3]))),...
-        squeeze(sqrt((csclx6*cscly6*csclz6)*sum(cvals6.^2.*ww0, [1 2 3]))),...
-        squeeze(sqrt((csclx7*cscly7*csclz7)*sum(cvals7.^2.*ww0, [1 2 3]))),...
-        squeeze(sqrt((csclx8*cscly8*csclz8)*sum(cvals8.^2.*ww0, [1 2 3])))];
-vmax = [squeeze(max(abs(cvals1),[],[1 2 3])),...
-        squeeze(max(abs(cvals2),[],[1 2 3])),...
-        squeeze(max(abs(cvals3),[],[1 2 3])),...
-        squeeze(max(abs(cvals4),[],[1 2 3])),...
-        squeeze(max(abs(cvals5),[],[1 2 3])),...
-        squeeze(max(abs(cvals6),[],[1 2 3])),...
-        squeeze(max(abs(cvals7),[],[1 2 3])),...
-        squeeze(max(abs(cvals8),[],[1 2 3]))];
+% rint = [squeeze(sqrt((csclx1*cscly1*csclz1)*sum(cvals1.^2.*ww0, [1 2 3]))),...
+%         squeeze(sqrt((csclx2*cscly2*csclz2)*sum(cvals2.^2.*ww0, [1 2 3]))),...
+%         squeeze(sqrt((csclx3*cscly3*csclz3)*sum(cvals3.^2.*ww0, [1 2 3]))),...
+%         squeeze(sqrt((csclx4*cscly4*csclz4)*sum(cvals4.^2.*ww0, [1 2 3]))),...
+%         squeeze(sqrt((csclx5*cscly5*csclz5)*sum(cvals5.^2.*ww0, [1 2 3]))),...
+%         squeeze(sqrt((csclx6*cscly6*csclz6)*sum(cvals6.^2.*ww0, [1 2 3]))),...
+%         squeeze(sqrt((csclx7*cscly7*csclz7)*sum(cvals7.^2.*ww0, [1 2 3]))),...
+%         squeeze(sqrt((csclx8*cscly8*csclz8)*sum(cvals8.^2.*ww0, [1 2 3])))];
+% vmax = [squeeze(max(abs(cvals1),[],[1 2 3])),...
+%         squeeze(max(abs(cvals2),[],[1 2 3])),...
+%         squeeze(max(abs(cvals3),[],[1 2 3])),...
+%         squeeze(max(abs(cvals4),[],[1 2 3])),...
+%         squeeze(max(abs(cvals5),[],[1 2 3])),...
+%         squeeze(max(abs(cvals6),[],[1 2 3])),...
+%         squeeze(max(abs(cvals7),[],[1 2 3])),...
+%         squeeze(max(abs(cvals8),[],[1 2 3]))];
+
+cvals = {cvals1, cvals2, cvals3, cvals4, cvals5, cvals6, cvals7, cvals8};
+csclx = [csclx1, csclx2, csclx3, csclx4, csclx5, csclx6, csclx7, csclx8];
+cscly = [cscly1, cscly2, cscly3, cscly4, cscly5, cscly6, cscly7, cscly8];
+csclz = [csclz1, csclz2, csclz3, csclz4, csclz5, csclz6, csclz7, csclz8];
+nsub = numel(cvals);
+rint = zeros(nd,nsub);
+vmax = zeros(nd,nsub);
+for i = 1:nsub
+  sw = csclx(i) * cscly(i) * csclz(i);
+  cvalstmp = reshape(cvals{i},[],nd);
+  rint(:,i) = (sw * sum(cvalstmp.*cvalstmp.*ww0(:),1)); 
+  vmax(:,i) = max(abs(cvalstmp)); 
+end
+rint = sqrt(rint);
 
 end
 
