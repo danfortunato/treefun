@@ -32,6 +32,21 @@ for k = 2:fnboxes
 end
 flevelIdx(end) = fnboxes+1;
 
+% Sort each level by Morton ID
+idx = zeros(size(f.morton));
+for k = 1:length(flevelIdx)-1
+    first = flevelIdx(k);
+    last  = flevelIdx(k+1)-1;
+    [~, ik] = sort(fmorton(first:last));
+    idx(first:last) = ik + first - 1;
+end
+fmorton = fmorton(idx);
+fcol = fcol(idx);
+frow = frow(idx);
+flevel = flevel(idx);
+fheight = fheight(idx);
+fcoeffs = fcoeffs(idx);
+
 % Generate a set of 2:1-balanced Morton IDs level by level from the bottom
 % (leaves) to the top (root)
 S = [];
@@ -93,8 +108,8 @@ for l = gnlevels:-1:2
         glevel(ids) = l-1;
         p = ps(k);
         %pxy = pxys(k,:);
-        while ( T{l-1}(jparent) ~= p && jparent <= length(T{l-1}) )
-        %while ( ~all(T{l-1}(jparent,:) == pxy) && jparent <= size(T{l-1}, 1) )
+        while ( jparent <= length(T{l-1}) && T{l-1}(jparent) ~= p )
+        %while ( jparent <= size(T{l-1}, 1) && ~all(T{l-1}(jparent,:) == pxy) )
             jparent = jparent + 1;
         end
         if ( jparent > size(T{l-1}, 1) )
