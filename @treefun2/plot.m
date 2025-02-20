@@ -1,4 +1,4 @@
-function varargout = plot(f, dom, varargin)
+function varargout = plot(f, varargin)
 %PLOT   Plot a TREEFUN2.
 %   PLOT(F) gives a 2D color plot of the TREEFUN2 F and shows the tree on
 %   which F is defined.
@@ -9,49 +9,73 @@ if ( isempty(f) )
     return
 end
 
-doLabel = false;
+holdState = ishold();
+root = f.root;
+dom = f.domain(:,root);
+nplotpts = 400;
+doLabel  = false;
+doBoxes  = true;
+doValues = true;
+filter = [];
 for k = 1:length(varargin)
+    if ( isstring(varargin{k}) && lower(varargin{k}) == "axis" )
+        dom = varargin{k+1};
+        filter = [filter k:k+1];
+        continue
+    end
+    if ( isstring(varargin{k}) && lower(varargin{k}) == "nplotpts" )
+        nplotpts = varargin{k+1};
+        filter = [filter k:k+1];
+        continue
+    end
     if ( isstring(varargin{k}) && lower(varargin{k}) == "label" )
         doLabel = varargin{k+1};
-        varargin(k:k+1) = [];
-        break
+        filter = [filter k:k+1];
+        continue
+    end
+    if ( isstring(varargin{k}) && lower(varargin{k}) == "boxes" )
+        doBoxes = varargin{k+1};
+        filter = [filter k:k+1];
+        continue
+    end
+    if ( isstring(varargin{k}) && lower(varargin{k}) == "values" )
+        doValues = varargin{k+1};
+        filter = [filter k:k+1];
+        continue
     end
 end
+varargin(filter) = [];
 
-holdState = ishold();
-nplotpts = 800;
-root = f.root;
-
-if ( nargin < 2 )
-    dom = f.domain(:,root);
-end
-
-% Plot the function
 hold on
 ids = leaves(f);
-% nplotpts = 200;
-% for k = 1:length(ids)
-%     id = ids(k);
-%     [x, y] = meshgrid(linspace(f.domain(1,id), f.domain(2,id), nplotpts), ...
-%                       linspace(f.domain(3,id), f.domain(4,id), nplotpts));
-%     u = coeffs2plotvals(f.coeffs{id});
-%     hk = surface(x, y, 0*u, u, 'EdgeAlpha', 1, varargin{:});
-%     if ( nargout > 0 )
-%         h(k) = hk; %#ok<AGROW>
-%     end
-% end
 
-[x, y] = meshgrid(linspace(dom(1), dom(2), nplotpts), ...
-                  linspace(dom(3), dom(4), nplotpts));
-u = feval(f, x, y);
-h = surface(x, y, 0*u, u, 'EdgeAlpha', 1, varargin{:});
-shading interp
-view(2)
+% Plot the function
+if ( doValues )
+    % nplotpts = 200;
+    % for k = 1:length(ids)
+    %     id = ids(k);
+    %     [x, y] = meshgrid(linspace(f.domain(1,id), f.domain(2,id), nplotpts), ...
+    %                       linspace(f.domain(3,id), f.domain(4,id), nplotpts));
+    %     u = coeffs2plotvals(f.coeffs{id});
+    %     hk = surface(x, y, 0*u, u, 'EdgeAlpha', 1, varargin{:});
+    %     if ( nargout > 0 )
+    %         h(k) = hk; %#ok<AGROW>
+    %     end
+    % end
+    [x, y] = meshgrid(linspace(dom(1), dom(2), nplotpts), ...
+                      linspace(dom(3), dom(4), nplotpts));
+    u = feval(f, x, y);
+    h = surface(x, y, 0*u, u, 'EdgeAlpha', 1, varargin{:});
+    shading interp
+    view(2)
+end
 
 % Plot the boxes
-xdata = [f.domain([1 2 2 1 1], ids) ; nan(1, length(ids))];
-ydata = [f.domain([3 3 4 4 3], ids) ; nan(1, length(ids))];
-line('XData', xdata(:), 'YData', ydata(:), 'LineWidth', 1)
+if ( doBoxes )
+    xdata = [f.domain([1 2 2 1 1], ids) ; nan(1, length(ids))];
+    ydata = [f.domain([3 3 4 4 3], ids) ; nan(1, length(ids))];
+    line('XData', xdata(:), 'YData', ydata(:), 'LineWidth', 1)
+end
 
 axis equal
 xlim(dom(1:2))
