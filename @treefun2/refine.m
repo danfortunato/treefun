@@ -26,6 +26,21 @@ for k = length(f.id):-1:1
     end
 end
 
+% Put into level order
+[~, idx] = sort(f.level);
+f.level = f.level(idx);
+f.domain = f.domain(:,idx);
+f.height = f.height(idx);
+f.id = f.id(idx);
+f.parent = f.parent(idx);
+f.children = f.children(:,idx);
+f.coeffs = f.coeffs(idx);
+f.col = f.col(idx);
+f.row = f.row(idx);
+f.morton = f.morton(idx);
+
+f = balance(f);
+
 [f.flatNeighbors, f.leafNeighbors] = generateNeighbors(f);
 
 end

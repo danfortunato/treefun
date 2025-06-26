@@ -6,29 +6,13 @@ if ( nargin < 2 )
 end
 
 ids = leaves(f);
-
+unresolved = [];
 for id = ids(:).'
-
-    if ( isResolved(f.coeffs{id}, tol) )
-        % Don't split
-        continue
+    if ( ~isResolved(f.coeffs{id}, tol) )
+        unresolved(end+1) = id; %#ok<AGROW>
     end
-
-    % This was a leaf, so we'll use its coeffs to evaluate on the new
-    % children
-    coeffs = f.coeffs{id};
-    % Split into four child boxes
-    f = refineBox(f, id);
-    children = f.children(:,id);
-    [LL, LR, UL, UR] = coeffs2children(coeffs);
-    f.coeffs{children(1)} = LL; % Lower left
-    f.coeffs{children(2)} = LR; % Lower right
-    f.coeffs{children(3)} = UL; % Upper left
-    f.coeffs{children(4)} = UR; % Upper right
 end
-
-f = balance(f);
-[f.flatNeighbors, f.leafNeighbors] = generateNeighbors(f);
+f = refine(f, unresolved);
 
 end
 
