@@ -1,0 +1,3 @@
+[submodule "external/boxcode2d"]
+	path = external/boxcode2d
+	url = https://github.com/flatironinstitute/boxcode2d
